@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>两体引力轨道模拟</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    margin: 0; padding: 24px;
+    background: #f5f6f8; color: #222;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #666; font-size: 13px; margin-bottom: 16px; }
+  .wrap { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
+  canvas {
+    background: #fff; border: 1px solid #d0d4da; border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.08);
+  }
+  .panel {
+    background: #fff; border: 1px solid #d0d4da; border-radius: 10px;
+    padding: 18px 20px; width: 280px; box-shadow: 0 2px 10px rgba(0,0,0,.08);
+  }
+  .panel h2 { font-size: 15px; margin: 0 0 12px; }
+  .row { margin-bottom: 14px; }
+  .row label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+  .row label .val { font-variant-numeric: tabular-nums; color: #2563eb; font-weight: 600; }
+  input[type=range] { width: 100%; accent-color: #2563eb; }
+  .buttons { display: flex; gap: 8px; margin: 6px 0 12px; }
+  button {
+    flex: 1; padding: 8px 0; border: 1px solid #cbd2dc; border-radius: 8px;
+    background: #fff; font-size: 14px; cursor: pointer;
+  }
+  button:hover { background: #eef2f7; }
+  button.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+  button.primary:hover { background: #1d4ed8; }
+  .status { font-size: 13px; color: #444; line-height: 1.6; }
+  .status b { color: #0f172a; }
+  .legend { font-size: 12px; color: #666; margin-top: 10px; line-height: 1.8; }
+  .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 4px; }
+</style>
+</head>
+<body>
+  <h1>中心力问题 · 两体引力轨道</h1>
+  <div class="sub">m1（蓝）与 m2（红）绕质心运动，虚线为两质点连线（始终穿过质心）</div>
+
+  <div class="wrap">
+    <canvas id="cv" width="700" height="700"></canvas>
+
+    <div class="panel">
+      <h2>参数</h2>
+      <div class="row">
+        <label>质量比 m2 / m1 <span class="val" id="qv">1.00</span></label>
+        <input type="range" id="q" min="-1" max="1" step="0.01" value="0">
+      </div>
+      <div class="row">
+        <label>偏心率 e <span class="val" id="ev">0.50</span></label>
+        <input type="range" id="e" min="0" max="1.4" step="0.01" value="0.5">
+      </div>
+
+      <div class="buttons">
+        <button id="btnPlay" class="primary">暂停</button>
+        <button id="btnReset">重置</button>
+      </div>
+
+      <div class="row">
+        <label>速度 <span class="val" id="spv">1.0×</span></label>
+        <input type="range" id="speed" min="0.2" max="4" step="0.1" value="1">
+      </div>
+      <div class="row">
+        <label>进度 <span class="val" id="frv">0</span></label>
+        <input type="range" id="progress" min="0" max="3000" step="1" value="0">
+      </div>
+
+      <div class="status" id="status"></div>
+      <div class="legend">
+        <span><span class="sw" style="background:#2563eb"></span>m1</span>
+        <span><span class="sw" style="background:#dc2626"></span>m2</span>
+        <span><span class="sw" style="background:#999"></span>连线</span>
+        <span><span class="sw" style="background:#111"></span>质心</span>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const G = 1.0, M1 = 1.0;
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+
+  const qEl = document.getElementById('q');
+  const eEl = document.getElementById('e');
+  const speedEl = document.getElementById('speed');
+  const progressEl = document.getElementById('progress');
+  const btnPlay = document.getElementById('btnPlay');
+  const btnReset = document.getElementById('btnReset');
+  const qv = document.getElementById('qv');
+  const ev = document.getElementById('ev');
+  const spv = document.getElementById('spv');
+  const frv = document.getElementById('frv');
+  const statusEl = document.getElementById('status');
+
+  function getQ() { return Math.pow(10, parseFloat(qEl.value)); }
+  const FIXED_P = 1.0;                       // 半通径固定，不再作为可调参数
+  function getP() { return FIXED_P; }
+  function getE() { return parseFloat(eEl.value); }
+
+  // ---------- 物理：RK4 积分两体系统 ----------
+  function deriv(s, m2) {
+    const rx = s[4] - s[0], ry = s[5] - s[1];
+    const r3 = Math.pow(rx * rx + ry * ry, 1.5);
+    const a1x = G * m2 * rx / r3, a1y = G * m2 * ry / r3;
+    const a2x = -G * M1 * rx / r3, a2y = -G * M1 * ry / r3;
+    return [s[2], s[3], a1x, a1y, s[6], s[7], a2x, a2y];
+  }
+
+  function rk4step(s, dt, m2) {
+    const k1 = deriv(s, m2);
+    const s2 = s.map((v, j) => v + 0.5 * dt * k1[j]);
+    const k2 = deriv(s2, m2);
+    const s3 = s.map((v, j) => v + 0.5 * dt * k2[j]);
+    const k3 = deriv(s3, m2);
+    const s4 = s.map((v, j) => v + dt * k3[j]);
+    const k4 = deriv(s4, m2);
+    return s.map((v, j) => v + dt / 6 * (k1[j] + 2 * k2[j] + 2 * k3[j] + k4[j]));
+  }
+
+  function buildTrajectory(q, p, e) {
+    const m2 = q * M1;
+    const M = M1 + m2;
+    const f1 = m2 / M, f2 = M1 / M;
+
+    // 初始时刻取真近点角 φ = -π/2（近心点前 90°）：
+    //   相对位置 r_rel = (0, -p)，相对速度 v_rel = sqrt(GM/p)·(1, e)
+    const rRel = [0, -p];
+    const hOverP = Math.sqrt(G * M / p);
+    const vRel = [hOverP, e * hOverP];
+
+    let y = [
+      -f1 * rRel[0], -f1 * rRel[1],  -f1 * vRel[0], -f1 * vRel[1],
+       f2 * rRel[0],  f2 * rRel[1],   f2 * vRel[0],  f2 * vRel[1],
+    ];
+
+    let t0, t1;
+    if (e < 1) {
+      const a = p / (1 - e * e);
+      const T = 2 * Math.PI * Math.sqrt(a * a * a / (G * M));
+      t0 = 0; t1 = Math.min(2 * T, 60);
+    } else {
+      t0 = -15; t1 = 15;
+    }
+
+    const n = 3000;
+    const dt = (t1 - t0) / n;
+    const r1x = new Float64Array(n), r1y = new Float64Array(n);
+    const r2x = new Float64Array(n), r2y = new Float64Array(n);
+    r1x[0] = y[0]; r1y[0] = y[1]; r2x[0] = y[4]; r2y[0] = y[5];
+
+    for (let i = 0; i < n - 1; i++) {
+      y = rk4step(y, dt, m2);
+      r1x[i + 1] = y[0]; r1y[i + 1] = y[1];
+      r2x[i + 1] = y[4]; r2y[i + 1] = y[5];
+    }
+    return { r1x, r1y, r2x, r2y, n };
+  }
+
+  function computeBounds(traj, e) {
+    let xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity;
+    if (e < 1) {
+      for (let i = 0; i < traj.n; i++) {
+        xmin = Math.min(xmin, traj.r1x[i], traj.r2x[i]);
+        xmax = Math.max(xmax, traj.r1x[i], traj.r2x[i]);
+        ymin = Math.min(ymin, traj.r1y[i], traj.r2y[i]);
+        ymax = Math.max(ymax, traj.r1y[i], traj.r2y[i]);
+      }
+    } else {
+      const R = 4 * getP();
+      xmin = -R; xmax = R; ymin = -R; ymax = R;
+    }
+    return { xmin, xmax, ymin, ymax };
+  }
+
+  // ---------- 状态 ----------
+  let traj = null, bounds = null;
+  let frame = 0, playing = true;
+  let last = performance.now(), acc = 0;
+  let scrubbing = false;
+
+  function rebuild() {
+    const q = getQ(), p = getP(), e = getE();
+    traj = buildTrajectory(q, p, e);
+    bounds = computeBounds(traj, e);
+    progressEl.max = traj.n - 1;
+    frame = 0; acc = 0;
+    updateReadouts();
+  }
+
+  function orbitType(e) {
+    if (e === 0) return '圆轨道';
+    if (e < 1)  return '椭圆轨道';
+    if (e === 1) return '抛物线轨道';
+    return '双曲线轨道';
+  }
+
+  function updateReadouts() {
+    const q = getQ(), p = getP(), e = getE();
+    qv.textContent = q.toFixed(2);
+    ev.textContent = e.toFixed(2);
+    spv.textContent = parseFloat(speedEl.value).toFixed(1) + '×';
+    statusEl.innerHTML =
+      '<b>' + orbitType(e) + '</b><br>' +
+      'm1 = 1.00, m2 = ' + q.toFixed(2) + '<br>' +
+      '总质量 M = ' + (1 + q).toFixed(2) + '<br>' +
+      '半通径 p = ' + p.toFixed(2) + '（固定）';
+  }
+
+  // ---------- 渲染 ----------
+  function draw(i) {
+    const w = cv.width, h = cv.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const b = bounds;
+    const sx = (b.xmax - b.xmin) || 1, sy = (b.ymax - b.ymin) || 1;
+    const pad = 0.08;
+    const scale = Math.min(w / (sx * (1 + 2 * pad)), h / (sy * (1 + 2 * pad)));
+    const cx = (b.xmin + b.xmax) / 2, cy = (b.ymin + b.ymax) / 2;
+    const X = x => w / 2 + (x - cx) * scale;
+    const Y = y => h / 2 - (y - cy) * scale;
+
+    // 完整轨道轨迹
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(37,99,235,0.35)';
+    ctx.beginPath();
+    for (let k = 0; k < traj.n; k++) {
+      const x = X(traj.r1x[k]), y = Y(traj.r1y[k]);
+      k ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(220,38,38,0.35)';
+    ctx.beginPath();
+    for (let k = 0; k < traj.n; k++) {
+      const x = X(traj.r2x[k]), y = Y(traj.r2y[k]);
+      k ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.stroke();
+
+    // 两质点连线（始终穿过质心）
+    const ax = X(traj.r1x[i]), ay = Y(traj.r1y[i]);
+    const bx = X(traj.r2x[i]), by = Y(traj.r2y[i]);
+    ctx.save();
+    ctx.strokeStyle = 'rgba(100,100,100,0.9)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(bx, by);
+    ctx.stroke();
+    ctx.restore();
+
+    // 质心
+    ctx.strokeStyle = '#111';
+    ctx.lineWidth = 2;
+    const ox = X(0), oy = Y(0);
+    ctx.beginPath();
+    ctx.moveTo(ox - 7, oy); ctx.lineTo(ox + 7, oy);
+    ctx.moveTo(ox, oy - 7); ctx.lineTo(ox, oy + 7);
+    ctx.stroke();
+
+    // 质点
+    ctx.fillStyle = '#2563eb';
+    ctx.beginPath(); ctx.arc(ax, ay, 7, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillStyle = '#dc2626';
+    ctx.beginPath(); ctx.arc(bx, by, 7, 0, 2 * Math.PI); ctx.fill();
+
+    // 标签
+    ctx.font = '13px -apple-system, sans-serif';
+    ctx.fillStyle = '#2563eb';
+    ctx.fillText('m1', ax + 10, ay - 8);
+    ctx.fillStyle = '#dc2626';
+    ctx.fillText('m2', bx + 10, by - 8);
+    ctx.fillStyle = '#111';
+    ctx.fillText('CM', ox + 10, oy - 8);
+  }
+
+  // ---------- 动画循环 ----------
+  function loop(now) {
+    const dtMs = now - last; last = now;
+    const speed = parseFloat(speedEl.value);
+    const stepsPerSec = 300 * speed;
+
+    if (playing && !scrubbing) {
+      acc += dtMs / 1000 * stepsPerSec;
+      if (acc >= 1) {
+        frame = (frame + Math.floor(acc)) % traj.n;
+        acc = acc % 1;
+        progressEl.value = frame;
+        frv.textContent = frame;
+      }
+    }
+    draw(frame);
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- 事件 ----------
+  function onParam() { rebuild(); if (!playing) draw(frame); }
+  qEl.addEventListener('input', onParam);
+  eEl.addEventListener('input', onParam);
+
+  speedEl.addEventListener('input', updateReadouts);
+
+  btnPlay.addEventListener('click', () => {
+    playing = !playing;
+    btnPlay.textContent = playing ? '暂停' : '播放';
+    btnPlay.classList.toggle('primary', playing);
+  });
+
+  btnReset.addEventListener('click', () => {
+    frame = 0; acc = 0; scrubbing = false;
+    progressEl.value = 0; frv.textContent = '0';
+  });
+
+  progressEl.addEventListener('input', () => {
+    scrubbing = true;
+    frame = parseInt(progressEl.value, 10) || 0;
+    frv.textContent = frame;
+    draw(frame);
+  });
+  progressEl.addEventListener('change', () => {
+    scrubbing = false; acc = 0;
+  });
+
+  // ---------- 启动 ----------
+  rebuild();
+  draw(0);
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
