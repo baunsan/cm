@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>回旋仪导航 · 陀螺的惯性定向</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; padding: 16px 20px 20px; background: #f5f6f8; color: #222;
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    display: flex; flex-direction: column; min-height: 100vh;
+  }
+  header { max-width: 1440px; width: 100%; margin: 0 auto 10px; flex: 0 0 auto; }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  .sub { color: #666; font-size: 12.5px; line-height: 1.75; }
+  .sub code {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; color: #1e3a8a;
+    background: #eef2f9; border: 1px solid #dde5f1; padding: 1px 6px; border-radius: 5px;
+  }
+  .wrap { max-width: 1440px; width: 100%; margin: 0 auto; flex: 1; min-height: 0; display: flex; gap: 16px; }
+  .left { flex: 1; min-width: 0; min-height: 0; display: flex; }
+  .vizrow { flex: 1; min-height: 0; display: flex; gap: 14px; width: 100%; }
+  .card {
+    flex: 1; min-width: 0; min-height: 0; background: #fff; border: 1px solid #d6dae1;
+    border-radius: 11px; box-shadow: 0 2px 10px rgba(0,0,0,.06);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .card-head {
+    flex: 0 0 auto; display: flex; align-items: baseline; justify-content: space-between;
+    gap: 8px; padding: 8px 12px 6px; font-size: 12px; color: #334155;
+  }
+  .card-head b { font-weight: 600; }
+  .card-head .mini { font-size: 10.5px; color: #94a3b8; white-space: nowrap; }
+  .canvas-wrap {
+    position: relative; flex: 1; min-height: 0;
+    background: radial-gradient(circle at 50% 45%, #ffffff 0%, #f3f6fb 62%, #e9eef6 100%);
+  }
+  .canvas-wrap canvas {
+    display: block; width: 100%; height: 100%; touch-action: none; cursor: grab;
+    user-select: none; -webkit-user-select: none;
+  }
+  .card-foot {
+    flex: 0 0 auto; padding: 5px 12px 7px; font-size: 10.5px; color: #94a3b8;
+    line-height: 1.5; border-top: 1px solid #f1f5f9;
+  }
+  .card-foot b { color: #ea580c; font-weight: 600; }
+  aside {
+    width: 352px; flex: 0 0 352px; background: #fff; border: 1px solid #d6dae1;
+    border-radius: 11px; box-shadow: 0 2px 10px rgba(0,0,0,.06);
+    padding: 15px 17px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #d7dde7 transparent;
+  }
+  aside::-webkit-scrollbar { width: 6px; }
+  aside::-webkit-scrollbar-thumb { background: #d7dde7; border-radius: 3px; }
+  aside h2 { font-size: 13px; margin: 14px 0 8px; letter-spacing: .3px; color: #334155; }
+  aside h2:first-child { margin-top: 0; }
+  .row { margin-bottom: 10px; }
+  .dis { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; color: #475569; margin-bottom: 3px; }
+  .dis .val { font-variant-numeric: tabular-nums; color: #7c3aed; font-weight: 600; font-size: 12px; }
+  input[type=range] { width: 100%; accent-color: #7c3aed; }
+  input[type=range]:disabled { accent-color: #cbd5e1; opacity: .55; }
+  .buttons { display: flex; gap: 8px; margin-top: 4px; }
+  button {
+    flex: 1; padding: 7px 0; border: 1px solid #cbd2dc; border-radius: 8px; background: #fff;
+    font-size: 12.5px; color: #222; cursor: pointer; transition: background .15s, border-color .15s;
+  }
+  button:hover { background: #eef2f7; }
+  button.primary { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+  button.primary:hover { background: #6d28d9; }
+  button:active { transform: translateY(1px); }
+  .switch { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #475569; cursor: pointer; }
+  .switch input { accent-color: #7c3aed; }
+  .checks { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; font-size: 12px; color: #475569; }
+  .checks label { display: flex; align-items: center; gap: 6px; cursor: pointer; white-space: nowrap; }
+  .checks input { accent-color: #7c3aed; }
+  .hint { font-size: 11px; color: #94a3b8; line-height: 1.65; margin: 7px 0 0; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .stat { background: #f7f9fc; border: 1px solid #e3e8ef; border-radius: 8px; padding: 6px 9px; font-size: 10.5px; color: #6b7280; }
+  .stat b { display: block; margin-top: 2px; font-size: 13px; color: #0f172a; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .stat.wide { grid-column: 1 / -1; }
+  .status {
+    margin-top: 8px; padding: 7px 10px; border-radius: 8px; border: 1px solid #e2e8f0;
+    font-size: 11.5px; font-weight: 600; text-align: center;
+  }
+  .status.ok { background: #ecfdf5; border-color: #a7f3d0; color: #047857; }
+  .eq {
+    margin-top: 8px; padding: 7px 10px; border-radius: 8px; background: #f7f9fc; border: 1px solid #e8ebf0;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10.5px; color: #475569;
+    line-height: 1.65; font-variant-numeric: tabular-nums; word-break: break-all;
+  }
+  .compass-wrap { margin: 2px auto 4px; max-width: 240px; }
+  #cvCompass { display: block; width: 100%; aspect-ratio: 1 / 1; }
+  .horizon-wrap { margin: 2px auto 4px; max-width: 240px; }
+  #cvHorizon { display: block; width: 100%; height: 120px; }
+  .compass-note { text-align: center; font-size: 10.5px; color: #94a3b8; line-height: 1.6; }
+  .note { font-size: 11.5px; color: #8b95a7; line-height: 1.72; margin: 10px 0 0; }
+  .note b { color: #475569; font-weight: 600; }
+  @media (max-width: 1080px) {
+    body { height: auto; min-height: 100%; overflow-y: auto; }
+    .wrap { flex-direction: column; }
+    .left { flex: 0 0 auto; min-height: 530px; }
+    aside { width: 100%; flex: 0 0 auto; overflow: visible; }
+  }
+  @media (max-width: 760px) {
+    body { padding: 12px; }
+    .vizrow { flex-direction: column; }
+    .left { min-height: 0; }
+    .card { min-height: 340px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>回旋仪导航 · 陀螺的惯性定向</h1>
+  <div class="sub">
+    初始时 <code>θ̇ = 0, φ̇ = 0</code>，角速度只沿对称轴：<code>ω = (0, 0, ω₃)</code>。
+    无外力矩时 <code>dL/dt = 0</code>，而 <code>L = I₃ω₃e₃</code>，所以 <code>e₃</code>、<code>|ω|</code>、<code>|L|</code>
+    在惯性空间中都保持不变 —— 这正是陀螺能作为航向基准的原因。载体转向或俯仰时，陀螺轴仍保持惯性方向。
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="left">
+    <div class="vizrow">
+      <section class="card">
+        <div class="card-head"><b>惯性系视角</b><span class="mini">陀螺轴 / L 保持不动</span></div>
+        <div class="canvas-wrap"><canvas id="cvInertial"></canvas></div>
+        <div class="card-foot">载体转向并俯仰，陀螺轴锁定惯性方向。<span style="color:#ea580c">橙 = L</span>，<span style="color:#7c3aed">紫 = ω</span>，<span style="color:#2563eb">蓝 = e₃</span>。</div>
+      </section>
+      <section class="card">
+        <div class="card-head"><b>载体视角 · 相机随载体</b><span class="mini">陀螺轴相对倾斜 / 转动</span></div>
+        <div class="canvas-wrap"><canvas id="cvBody"></canvas></div>
+        <div class="card-foot">载体固定在画面中，地面网格、N/E 与陀螺轴一起反向倾斜/转动，直观显示“测量到的相对角”。</div>
+      </section>
+    </div>
+  </div>
+
+  <aside>
+    <h2>控制</h2>
+    <div class="row">
+      <div class="dis"><span>自转速度 ω₃</span><span class="val" id="vSpin">6.0 rad/s</span></div>
+      <input id="sSpin" type="range" min="1" max="16" step="0.5" value="6">
+    </div>
+    <div class="row">
+      <div class="dis"><span>载体航向 H（从北顺时针）</span><span class="val" id="vHeading">0°</span></div>
+      <input id="sHeading" type="range" min="0" max="360" step="1" value="0">
+    </div>
+    <div class="row">
+      <label class="switch"><input type="checkbox" id="chkAuto" checked> 自动转向（航向左右摆动）</label>
+    </div>
+    <div class="row">
+      <div class="dis"><span>载体俯仰 β（抬头为正）</span><span class="val" id="vPitch">0°</span></div>
+      <input id="sPitch" type="range" min="-30" max="30" step="1" value="0">
+    </div>
+    <div class="row">
+      <label class="switch"><input type="checkbox" id="chkAutoPitch" checked> 自动上下摆动</label>
+    </div>
+    <div class="row">
+      <div class="dis"><span>俯仰幅度（自动）</span><span class="val" id="vPitchAmp">12°</span></div>
+      <input id="sPitchAmp" type="range" min="2" max="20" step="1" value="12">
+    </div>
+    <div class="row">
+      <div class="dis"><span>时间速度</span><span class="val" id="vSpeed">1.0×</span></div>
+      <input id="sSpeed" type="range" min="0.2" max="2" step="0.1" value="1">
+    </div>
+    <div class="buttons">
+      <button id="btnPlay" class="primary">暂停</button>
+      <button id="btnReset">重置</button>
+    </div>
+    <div class="hint">修改自转速度会重置动画；航向和俯仰可随时调整。</div>
+
+    <h2>俯仰姿态仪</h2>
+    <div class="horizon-wrap"><canvas id="cvHorizon"></canvas></div>
+    <div class="compass-note">蓝线 = 陀螺参考惯性水平　橙线 = 载体地平线</div>
+
+    <h2>航向罗盘</h2>
+    <div class="compass-wrap"><canvas id="cvCompass"></canvas></div>
+    <div class="compass-note">蓝针 = 陀螺轴（惯性北）　橙针 = 载体航向</div>
+
+    <h2>实时读数</h2>
+    <div class="stats">
+      <div class="stat">|L|<b id="roL">–</b></div>
+      <div class="stat">|ω|<b id="roW">–</b></div>
+      <div class="stat">轴方位 α<b id="roAlpha">–</b></div>
+      <div class="stat">极角 θ<b id="roTheta">–</b></div>
+      <div class="stat wide">载体俯仰 β<b id="roPitch">–</b></div>
+      <div class="stat">真实航向 H<b id="roH">–</b></div>
+      <div class="stat">陀螺测得航向<b id="roMeasured">–</b></div>
+      <div class="stat">航向误差<b id="roErr">–</b></div>
+      <div class="stat">运行时间<b id="roTime">–</b></div>
+    </div>
+    <div class="status ok" id="roMode">载体转向/俯仰 · 陀螺轴锁定惯性方向</div>
+    <div class="eq" id="eqReadout">L = (0.00, 0.00, 0.00)</div>
+
+    <h2>显示</h2>
+    <div class="checks">
+      <label><input type="checkbox" id="chkGrid" checked> 网格 / 方位</label>
+      <label><input type="checkbox" id="chkL" checked> 角动量 L</label>
+      <label><input type="checkbox" id="chkW" checked> 角速度 ω</label>
+      <label><input type="checkbox" id="chkAxis" checked> 陀螺轴 e₃</label>
+      <label><input type="checkbox" id="chkGimbal" checked> 万向架</label>
+      <label><input type="checkbox" id="chkTrail" checked> 轨迹</label>
+    </div>
+    <div class="hint">拖动任意 3D 视图旋转，滚轮缩放，双击复位相机。</div>
+
+    <p class="note">
+      <b>要点：</b>理想模型无外力矩、无初始扰动，<code>θ̇ = φ̇ = 0</code>，因此 L 在惯性系严格守恒。
+      载体可以转向和俯仰，陀螺轴始终锁定惯性方向；载体相对陀螺的转角就是航向/姿态读数。
+      真实陀螺仍有轴承摩擦、质量不平衡、地球自转（约 15°/h）等误差源，导航级陀螺需要精密支承与补偿。
+    </p>
+  </aside>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const DEG = Math.PI / 180;
+  const RAD = 180 / Math.PI;
+  const TAU = Math.PI * 2;
+  const FOV = 42 * DEG;
+  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+  const fmt = (v, n = 2) => (Math.abs(v) < 5e-4 ? 0 : v).toFixed(n);
+  const norm360 = d => ((d % 360) + 360) % 360;
+  const normPi = r => {
+    let x = (r + Math.PI) % TAU;
+    if (x < 0) x += TAU;
+    return x - Math.PI;
+  };
+  const $ = id => document.getElementById(id);
+
+  function add(a, b) { return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z }; }
+  function sub(a, b) { return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z }; }
+  function mul(a, s) { return { x: a.x * s, y: a.y * s, z: a.z * s }; }
+  function dot(a, b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
+  function cross(a, b) {
+    return { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x };
+  }
+  function vlen(a) { return Math.hypot(a.x, a.y, a.z); }
+  function norm(a) {
+    const l = vlen(a);
+    return l > 1e-12 ? { x: a.x / l, y: a.y / l, z: a.z / l } : { x: 0, y: 0, z: 0 };
+  }
+
+  const X_AXIS = { x: 1, y: 0, z: 0 };
+  const Y_AXIS = { x: 0, y: 1, z: 0 };
+  const Z_AXIS = { x: 0, y: 0, z: 1 };
+
+  function qMul(a, b) {
+    return {
+      w: a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
+      x: a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
+      y: a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
+      z: a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w
+    };
+  }
+  function qNorm(q) {
+    const l = Math.hypot(q.x, q.y, q.z, q.w) || 1;
+    return { x: q.x / l, y: q.y / l, z: q.z / l, w: q.w / l };
+  }
+  function qFromAxisAngle(axis, angle) {
+    const a = norm(axis);
+    const s = Math.sin(angle / 2);
+    return { x: a.x * s, y: a.y * s, z: a.z * s, w: Math.cos(angle / 2) };
+  }
+  function qToMat(q) {
+    const x = q.x, y = q.y, z = q.z, w = q.w;
+    const xx = x * x, yy = y * y, zz = z * z;
+    const xy = x * y, xz = x * z, yz = y * z;
+    const wx = w * x, wy = w * y, wz = w * z;
+    return [
+      1 - 2 * (yy + zz), 2 * (xy - wz), 2 * (xz + wy),
+      2 * (xy + wz), 1 - 2 * (xx + zz), 2 * (yz - wx),
+      2 * (xz - wy), 2 * (yz + wx), 1 - 2 * (xx + yy)
+    ];
+  }
+  function mVec(M, v) {
+    return {
+      x: M[0] * v.x + M[1] * v.y + M[2] * v.z,
+      y: M[3] * v.x + M[4] * v.y + M[5] * v.z,
+      z: M[6] * v.x + M[7] * v.y + M[8] * v.z
+    };
+  }
+  function mTVec(M, v) {
+    return {
+      x: M[0] * v.x + M[3] * v.y + M[6] * v.z,
+      y: M[1] * v.x + M[4] * v.y + M[7] * v.z,
+      z: M[2] * v.x + M[5] * v.y + M[8] * v.z
+    };
+  }
+  function qDeriv(q, L) {
+    const R = qToMat(q);
+    const Lb = mTVec(R, L);
+    const w = { x: Lb.x / P.Iperp, y: Lb.y / P.Iperp, z: Lb.z / P.Ipar };
+    const qw = qMul(q, { x: w.x, y: w.y, z: w.z, w: 0 });
+    return { x: 0.5 * qw.x, y: 0.5 * qw.y, z: 0.5 * qw.z, w: 0.5 * qw.w };
+  }
+  function qAdvance(q, d, s) {
+    return qNorm({
+      x: q.x + d.x * s,
+      y: q.y + d.y * s,
+      z: q.z + d.z * s,
+      w: q.w + d.w * s
+    });
+  }
+  function integrateQuatRK4(q, L, dt) {
+    const k1 = qDeriv(q, L);
+    const k2 = qDeriv(qAdvance(q, k1, dt / 2), L);
+    const k3 = qDeriv(qAdvance(q, k2, dt / 2), L);
+    const k4 = qDeriv(qAdvance(q, k3, dt), L);
+    return qNorm({
+      x: q.x + dt * (k1.x + 2 * k2.x + 2 * k3.x + k4.x) / 6,
+      y: q.y + dt * (k1.y + 2 * k2.y + 2 * k3.y + k4.y) / 6,
+      z: q.z + dt * (k1.z + 2 * k2.z + 2 * k3.z + k4.z) / 6,
+      w: q.w + dt * (k1.w + 2 * k2.w + 2 * k3.w + k4.w) / 6
+    });
+  }
+
+  const TARGET = { x: 0, y: 0, z: 1.2 };
+  const GYRO_LOCAL = { x: 0, y: 0, z: 1.35 };
+  const ROTOR_R = 0.72;
+  const ROTOR_T = 0.16;
+  const INNER_R = 0.98;
+  const OUTER_R = 1.2;
+  const PLATFORM_R = 1.55;
+  const CASE_HALF_LEN = 1.7;
+  const H0 = 0.6;
+
+  const P = {
+    spin: 6,
+    Iperp: 1.2,
+    Ipar: 2.0,
+    headingTarget: 0,
+    autoTurn: true,
+    pitchTarget: 0,
+    autoPitch: true,
+    pitchAmp: 12 * DEG,
+    timeScale: 1,
+    running: true,
+    showGrid: true,
+    showL: true,
+    showW: true,
+    showAxis: true,
+    showGimbal: true,
+    showTrail: true
+  };
+
+  const sim = {
+    t: 0,
+    H: 0,
+    pitch: 0,
+    q: qFromAxisAngle(X_AXIS, -Math.PI / 2),
+    L: { x: 0, y: 0, z: 0 },
+    noseTrail: [],
+    axisTrail: [],
+    trailClock: 0,
+    alpha: 0,
+    Rc: null,
+    caseLift: 0,
+    gyroC: { x: 0, y: 0, z: 0 }
+  };
+
+  function updateCasePose() {
+    const qCase = qMul(
+      qFromAxisAngle(Z_AXIS, -sim.H),
+      qFromAxisAngle(X_AXIS, sim.pitch)
+    );
+    sim.Rc = qToMat(qCase);
+    sim.caseLift = CASE_HALF_LEN * Math.abs(Math.sin(sim.pitch));
+    sim.gyroC = add(mVec(sim.Rc, GYRO_LOCAL), { x: 0, y: 0, z: sim.caseLift });
+  }
+
+  function casePoint(local) {
+    return add(mVec(sim.Rc, local), { x: 0, y: 0, z: sim.caseLift });
+  }
+
+  function resetSim() {
+    sim.t = 0;
+    sim.H = H0;
+    P.headingTarget = H0;
+    sim.pitch = 0;
+    P.pitchTarget = 0;
+    sim.q = qFromAxisAngle(X_AXIS, -Math.PI / 2);
+    const R = qToMat(sim.q);
+    sim.L = mVec(R, { x: 0, y: 0, z: P.Ipar * P.spin });
+    sim.noseTrail.length = 0;
+    sim.axisTrail.length = 0;
+    sim.trailClock = 0;
+    updateCasePose();
+  }
+
+  function stepPhysics(dt) {
+    sim.q = integrateQuatRK4(sim.q, sim.L, dt);
+  }
+
+  function addTrail(sdt) {
+    sim.trailClock += sdt;
+    if (sim.trailClock < 0.035) return;
+    sim.trailClock = 0;
+    const Rg = qToMat(sim.q);
+    const axis = mVec(Rg, Z_AXIS);
+    sim.axisTrail.push(add(sim.gyroC, mul(axis, 1.52)));
+    if (sim.axisTrail.length > 520) sim.axisTrail.shift();
+    const nose = casePoint({ x: 0, y: 2.0, z: 0.06 });
+    sim.noseTrail.push({ x: nose.x, y: nose.y, z: 0.06 });
+    if (sim.noseTrail.length > 520) sim.noseTrail.shift();
+  }
+
+  function makeView(id, isBody) {
+    const canvas = $(id);
+    return {
+      canvas: canvas,
+      ctx: canvas.getContext('2d'),
+      isBody: isBody,
+      W: 320,
+      H: 260,
+      dpr: 1,
+      cam: { yaw: 0.7, pitch: 0.5, dist: 8.8 },
+      cc: null
+    };
+  }
+
+  const views = {
+    inertial: makeView('cvInertial', false),
+    body: makeView('cvBody', true)
+  };
+
+  const compass = { canvas: $('cvCompass'), ctx: $('cvCompass').getContext('2d'), W: 260, H: 260, dpr: 1 };
+  const horizon = { canvas: $('cvHorizon'), ctx: $('cvHorizon').getContext('2d'), W: 240, H: 120, dpr: 1 };
+
+  function fitView(v) {
+    const w = Math.max(1, v.canvas.clientWidth || 320);
+    const h = Math.max(1, v.canvas.clientHeight || 260);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (v.W === w && v.H === h && v.dpr === dpr) return;
+    v.W = w; v.H = h; v.dpr = dpr;
+    v.canvas.width = Math.round(w * dpr);
+    v.canvas.height = Math.round(h * dpr);
+    v.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function fitCompass() {
+    const w = Math.max(1, compass.canvas.clientWidth || 260);
+    const h = Math.max(1, compass.canvas.clientHeight || 260);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (compass.W === w && compass.H === h && compass.dpr === dpr) return;
+    compass.W = w; compass.H = h; compass.dpr = dpr;
+    compass.canvas.width = Math.round(w * dpr);
+    compass.canvas.height = Math.round(h * dpr);
+    compass.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function fitHorizon() {
+    const w = Math.max(1, horizon.canvas.clientWidth || 240);
+    const h = Math.max(1, horizon.canvas.clientHeight || 120);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (horizon.W === w && horizon.H === h && horizon.dpr === dpr) return;
+    horizon.W = w; horizon.H = h; horizon.dpr = dpr;
+    horizon.canvas.width = Math.round(w * dpr);
+    horizon.canvas.height = Math.round(h * dpr);
+    horizon.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function buildCamera(v) {
+    const cp = Math.cos(v.cam.pitch);
+    const sp = Math.sin(v.cam.pitch);
+    let eye, forward, right, up;
+
+    if (v.isBody) {
+      const localOffset = {
+        x: v.cam.dist * cp * Math.cos(v.cam.yaw),
+        y: v.cam.dist * cp * Math.sin(v.cam.yaw),
+        z: v.cam.dist * sp
+      };
+      const targetWorld = casePoint({ x: 0, y: 0, z: TARGET.z });
+      eye = add(targetWorld, mVec(sim.Rc, localOffset));
+      const fwdLocal = norm(mul(localOffset, -1));
+      let rightLocal = norm(cross(fwdLocal, Z_AXIS));
+      if (vlen(rightLocal) < 1e-6) rightLocal = { x: 1, y: 0, z: 0 };
+      const upLocal = cross(rightLocal, fwdLocal);
+      forward = mVec(sim.Rc, fwdLocal);
+      right = mVec(sim.Rc, rightLocal);
+      up = mVec(sim.Rc, upLocal);
+    } else {
+      const yaw = v.cam.yaw;
+      eye = {
+        x: TARGET.x + v.cam.dist * cp * Math.cos(yaw),
+        y: TARGET.y + v.cam.dist * cp * Math.sin(yaw),
+        z: TARGET.z + v.cam.dist * sp
+      };
+      forward = norm(sub(TARGET, eye));
+      right = norm(cross(forward, Z_AXIS));
+      if (vlen(right) < 1e-6) right = { x: 1, y: 0, z: 0 };
+      up = cross(right, forward);
+    }
+
+    const focal = Math.min(v.W, v.H) * 0.5 / Math.tan(FOV / 2);
+    v.cc = { eye, forward, right, up, focal, cx: v.W / 2, cy: v.H / 2 };
+    v.ctx.clearRect(0, 0, v.W, v.H);
+    v.ctx.lineCap = 'round';
+    v.ctx.lineJoin = 'round';
+  }
+
+  function project(v, p) {
+    const c = v.cc;
+    const d = sub(p, c.eye);
+    const z = dot(d, c.forward);
+    if (z < 0.25) return null;
+    const s = c.focal / z;
+    return { x: c.cx + dot(d, c.right) * s, y: c.cy - dot(d, c.up) * s, z, s };
+  }
+
+  function line3(v, a, b, color, width, dash) {
+    const pa = project(v, a), pb = project(v, b);
+    if (!pa || !pb) return;
+    const ctx = v.ctx;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.setLineDash(dash || []);
+    ctx.beginPath();
+    ctx.moveTo(pa.x, pa.y);
+    ctx.lineTo(pb.x, pb.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  function polyline3(v, pts, color, width, close) {
+    const n = pts.length;
+    if (n < 2) return;
+    const last = close ? n : n - 1;
+    for (let i = 0; i < last; i++) {
+      line3(v, pts[i], pts[(i + 1) % n], color, width);
+    }
+  }
+
+  function fillPoly3(v, pts, fill, stroke, lineWidth) {
+    const ps = [];
+    for (let i = 0; i < pts.length; i++) {
+      const q = project(v, pts[i]);
+      if (!q) return false;
+      ps.push(q);
+    }
+    const ctx = v.ctx;
+    ctx.beginPath();
+    ctx.moveTo(ps[0].x, ps[0].y);
+    for (let i = 1; i < ps.length; i++) ctx.lineTo(ps[i].x, ps[i].y);
+    ctx.closePath();
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lineWidth || 1; ctx.stroke(); }
+    return true;
+  }
+
+  function arrow3(v, a, b, color, width, head) {
+    const pa = project(v, a), pb = project(v, b);
+    if (!pa || !pb) return;
+    const ctx = v.ctx;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(pa.x, pa.y);
+    ctx.lineTo(pb.x, pb.y);
+    ctx.stroke();
+    const dx = pb.x - pa.x, dy = pb.y - pa.y;
+    const l = Math.hypot(dx, dy);
+    if (l < 1) return;
+    const ux = dx / l, uy = dy / l;
+    const px = -uy, py = ux;
+    const h = Math.min(head, l * 0.5);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(pb.x, pb.y);
+    ctx.lineTo(pb.x - ux * h + px * h * 0.55, pb.y - uy * h + py * h * 0.55);
+    ctx.lineTo(pb.x - ux * h - px * h * 0.55, pb.y - uy * h - py * h * 0.55);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function label3(v, p, text, color, dx, dy) {
+    const q = project(v, p);
+    if (!q) return;
+    const ctx = v.ctx;
+    ctx.fillStyle = color;
+    ctx.font = '11px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, q.x + (dx || 0), q.y + (dy || 0));
+  }
+
+  function ringPts(center, u, v, r, n) {
+    const pts = [];
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * TAU;
+      pts.push(add(center, add(mul(u, r * Math.cos(a)), mul(v, r * Math.sin(a)))));
+    }
+    return pts;
+  }
+
+  function drawGround(v) {
+    const ctx = v.ctx;
+    ctx.strokeStyle = '#e4e9f1';
+    ctx.lineWidth = 1;
+    for (let i = -3; i <= 3; i++) {
+      line3(v, { x: i, y: -3.4, z: 0 }, { x: i, y: 3.4, z: 0 }, '#e4e9f1', 1);
+      line3(v, { x: -3.4, y: i, z: 0 }, { x: 3.4, y: i, z: 0 }, '#e4e9f1', 1);
+    }
+    arrow3(v, { x: 0, y: 1.7, z: 0 }, { x: 0, y: 3.05, z: 0 }, '#dc2626', 2, 9);
+    arrow3(v, { x: 1.7, y: 0, z: 0 }, { x: 3.05, y: 0, z: 0 }, '#16a34a', 2, 9);
+    label3(v, { x: 0, y: 3.28, z: 0 }, 'N', '#dc2626', 0, -2);
+    label3(v, { x: 3.28, y: 0, z: 0 }, 'E', '#16a34a', 2, 0);
+  }
+
+  function drawTrails(v) {
+    if (!P.showTrail) return;
+    if (sim.noseTrail.length > 1) polyline3(v, sim.noseTrail, 'rgba(234, 88, 12, 0.35)', 2, false);
+    if (sim.axisTrail.length > 1) polyline3(v, sim.axisTrail, 'rgba(37, 99, 235, 0.45)', 2, false);
+  }
+
+  function drawCase(v) {
+    const shape = [
+      [0, 1.62], [-0.62, 1.12], [-1.05, 0.42], [-1.08, -0.58],
+      [-0.55, -1.12], [0, -1.36], [0.55, -1.12], [1.08, -0.58],
+      [1.05, 0.42], [0.62, 1.12]
+    ];
+    const pts = shape.map(s => casePoint({ x: s[0], y: s[1], z: 0.035 }));
+    fillPoly3(v, pts, 'rgba(148, 163, 184, 0.18)', '#64748b', 1.4);
+
+    const rim = ringPts({ x: 0, y: 0, z: 0.025 }, X_AXIS, Y_AXIS, PLATFORM_R, 72)
+      .map(p => casePoint(p));
+    polyline3(v, rim, '#94a3b8', 1.8, true);
+
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * TAU;
+      const p1 = casePoint({ x: Math.cos(a) * PLATFORM_R, y: Math.sin(a) * PLATFORM_R, z: 0.04 });
+      const p2 = casePoint({ x: Math.cos(a) * (PLATFORM_R - 0.18), y: Math.sin(a) * (PLATFORM_R - 0.18), z: 0.04 });
+      line3(v, p1, p2, '#94a3b8', 2);
+    }
+
+    const n0 = casePoint({ x: 0, y: 0.92, z: 0.1 });
+    const n1 = casePoint({ x: 0, y: 1.98, z: 0.1 });
+    arrow3(v, n0, n1, '#ea580c', 3, 11);
+
+    const lbl = casePoint({ x: 0, y: 1.22, z: 0.72 });
+    label3(v, lbl, '载体', '#64748b', 0, 0);
+  }
+
+  function innerBasis(axis) {
+    let v = sub(Z_AXIS, mul(axis, dot(Z_AXIS, axis)));
+    if (vlen(v) < 1e-4) v = sub(Y_AXIS, mul(axis, dot(Y_AXIS, axis)));
+    v = norm(v);
+    return { u: axis, v: v };
+  }
+
+  function drawGimbal(v, Rg) {
+    if (!P.showGimbal) return;
+    const forward = mVec(sim.Rc, Y_AXIS);
+    const up = mVec(sim.Rc, Z_AXIS);
+    const center = sim.gyroC;
+    const outer = ringPts(center, forward, up, OUTER_R, 72);
+    polyline3(v, outer, '#94a3b8', 2.2, true);
+    for (let s = -1; s <= 1; s += 2) {
+      const top = add(center, mul(forward, s * OUTER_R));
+      const foot = casePoint({ x: 0, y: s * OUTER_R, z: 0.04 });
+      line3(v, foot, top, '#94a3b8', 3);
+    }
+
+    const axis = mVec(Rg, Z_AXIS);
+    const ib = innerBasis(axis);
+    const inner = ringPts(center, ib.u, ib.v, INNER_R, 72);
+    polyline3(v, inner, '#64748b', 2.4, true);
+    line3(v, add(center, mul(axis, -INNER_R)), add(center, mul(axis, INNER_R)), '#334155', 3.6);
+
+    const capA = project(v, add(center, mul(axis, INNER_R)));
+    const capB = project(v, add(center, mul(axis, -INNER_R)));
+    const ctx = v.ctx;
+    ctx.fillStyle = '#0f172a';
+    if (capA) { ctx.beginPath(); ctx.arc(capA.x, capA.y, 2.6, 0, TAU); ctx.fill(); }
+    if (capB) { ctx.beginPath(); ctx.arc(capB.x, capB.y, 2.6, 0, TAU); ctx.fill(); }
+  }
+
+  function drawRotor(v, Rg) {
+    const e1 = { x: Rg[0], y: Rg[3], z: Rg[6] };
+    const e2 = { x: Rg[1], y: Rg[4], z: Rg[7] };
+    const e3 = { x: Rg[2], y: Rg[5], z: Rg[8] };
+    const c = sim.gyroC;
+    const front = add(c, mul(e3, ROTOR_T / 2));
+    const back = add(c, mul(e3, -ROTOR_T / 2));
+    const fPts = ringPts(front, e1, e2, ROTOR_R, 64);
+    const bPts = ringPts(back, e1, e2, ROTOR_R, 64);
+    const pf = project(v, front), pb = project(v, back);
+    if (!pf && !pb) return;
+
+    let far = { c: front, pts: fPts, p: pf };
+    let near = { c: back, pts: bPts, p: pb };
+    if (!pf) { far = { c: back, pts: bPts, p: pb }; near = null; }
+    else if (!pb) { far = { c: front, pts: fPts, p: pf }; near = null; }
+    else if (pb.z > pf.z) { far = { c: back, pts: bPts, p: pb }; near = { c: front, pts: fPts, p: pf }; }
+    else { far = { c: front, pts: fPts, p: pf }; near = { c: back, pts: bPts, p: pb }; }
+
+    fillPoly3(v, far.pts, 'rgba(196, 181, 253, 0.30)', 'rgba(124, 58, 237, 0.35)', 1);
+    for (let i = 0; i < 64; i += 8) {
+      line3(v, bPts[i], fPts[i], 'rgba(109, 40, 217, 0.32)', 1);
+    }
+    if (near) {
+      fillPoly3(v, near.pts, 'rgba(196, 181, 253, 0.46)', 'rgba(109, 40, 217, 0.55)', 1.4);
+      polyline3(v, near.pts, '#7c3aed', 2.2, true);
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * TAU;
+        const dir = add(mul(e1, Math.cos(a)), mul(e2, Math.sin(a)));
+        const p1 = add(near.c, mul(dir, 0.14));
+        const p2 = add(near.c, mul(dir, 0.66));
+        line3(v, p1, p2, i % 2 ? 'rgba(109, 40, 217, 0.32)' : 'rgba(109, 40, 217, 0.66)', i % 2 ? 1.1 : 1.8);
+      }
+      const md1 = add(mul(e1, Math.cos(0.35)), mul(e2, Math.sin(0.35)));
+      const md2 = add(mul(e1, Math.cos(0.35 + Math.PI)), mul(e2, Math.sin(0.35 + Math.PI)));
+      const m1 = project(v, add(near.c, mul(md1, 0.55)));
+      const m2 = project(v, add(near.c, mul(md2, 0.55)));
+      const ctx = v.ctx;
+      if (m1) { ctx.fillStyle = '#f97316'; ctx.beginPath(); ctx.arc(m1.x, m1.y, 3.2, 0, TAU); ctx.fill(); }
+      if (m2) { ctx.fillStyle = '#0284c7'; ctx.beginPath(); ctx.arc(m2.x, m2.y, 2.6, 0, TAU); ctx.fill(); }
+      fillPoly3(v, ringPts(near.c, e1, e2, 0.13, 20), '#6d28d9', null, 0);
+    }
+  }
+
+  function drawVectors(v, Rg) {
+    const axis = mVec(Rg, Z_AXIS);
+    const L = sim.L;
+    const Ll = vlen(L);
+    const Lhat = Ll > 1e-9 ? mul(L, 1 / Ll) : axis;
+    const Lb = mTVec(Rg, L);
+    const w = { x: Lb.x / P.Iperp, y: Lb.y / P.Iperp, z: Lb.z / P.Ipar };
+    const wl = vlen(w);
+    const what = wl > 1e-9 ? mul(w, 1 / wl) : axis;
+    const wInertial = mVec(Rg, what);
+    const c = sim.gyroC;
+
+    const refL = Math.max(1e-6, P.Ipar * Math.max(1, P.spin));
+    const lLen = clamp(1.45 * (Ll / refL), 1.15, 2.35);
+
+    if (P.showL) {
+      const tip = add(c, mul(Lhat, lLen));
+      arrow3(v, c, tip, '#ea580c', 3.6, 12);
+      label3(v, tip, 'L', '#ea580c', 12, -8);
+    }
+
+    if (P.showAxis) {
+      const tip = add(c, mul(axis, 1.4));
+      const tail = add(c, mul(axis, -0.98));
+      line3(v, tail, tip, '#2563eb', 1.7, [5, 4]);
+      label3(v, add(c, mul(axis, 1.0)), 'e₃', '#2563eb', -14, 16);
+    }
+
+    if (P.showW) {
+      const e1 = { x: Rg[0], y: Rg[3], z: Rg[6] };
+      const base = add(c, mul(e1, 0.17));
+      const tip = add(base, mul(wInertial, 1.15));
+      arrow3(v, base, tip, '#7c3aed', 2.6, 10);
+      label3(v, tip, 'ω', '#7c3aed', 13, 12);
+    }
+  }
+
+  function drawScene(v) {
+    if (P.showGrid) drawGround(v);
+    drawTrails(v);
+    const Rg = qToMat(sim.q);
+    drawCase(v);
+    drawGimbal(v, Rg);
+    drawRotor(v, Rg);
+    drawVectors(v, Rg);
+  }
+
+  function drawArrow2D(ctx, x1, y1, x2, y2, color, width, head) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    const dx = x2 - x1, dy = y2 - y1;
+    const l = Math.hypot(dx, dy);
+    if (l < 1) return;
+    const ux = dx / l, uy = dy / l;
+    const px = -uy, py = ux;
+    const h = Math.min(head, l * 0.45);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - ux * h + px * h * 0.6, y2 - uy * h + py * h * 0.6);
+    ctx.lineTo(x2 - ux * h - px * h * 0.6, y2 - uy * h - py * h * 0.6);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function compassPoint(cx, cy, r, ang) {
+    return { x: cx + Math.sin(ang) * r, y: cy - Math.cos(ang) * r };
+  }
+
+  function drawCompass() {
+    fitCompass();
+    const ctx = compass.ctx;
+    const W = compass.W, H = compass.H;
+    ctx.clearRect(0, 0, W, H);
+    const cx = W / 2, cy = H / 2;
+    const r = Math.min(W, H) * 0.43;
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, TAU);
+    ctx.fillStyle = 'rgba(255,255,255,0.86)';
+    ctx.fill();
+    ctx.strokeStyle = '#dbe3ee';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    for (let d = 0; d < 360; d += 10) {
+      const a = d * DEG;
+      const inner = d % 30 === 0 ? r - 9 : r - 4.5;
+      const p1 = compassPoint(cx, cy, inner, a);
+      const p2 = compassPoint(cx, cy, r - 1.5, a);
+      ctx.strokeStyle = d % 30 === 0 ? '#94a3b8' : '#dbe3ee';
+      ctx.lineWidth = d % 30 === 0 ? 1.4 : 1;
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.stroke();
+    }
+
+    const cards = [[0, 'N', '#dc2626'], [90, 'E', '#475569'], [180, 'S', '#475569'], [270, 'W', '#475569']];
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '600 12px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+    for (let i = 0; i < cards.length; i++) {
+      const p = compassPoint(cx, cy, r - 21, cards[i][0] * DEG);
+      ctx.fillStyle = cards[i][2];
+      ctx.fillText(cards[i][1], p.x, p.y);
+    }
+
+    const hNorm = normPi(sim.H);
+    if (Math.abs(hNorm) > 0.015) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * 0.77, -Math.PI / 2, -Math.PI / 2 + hNorm, hNorm < 0);
+      ctx.strokeStyle = 'rgba(234, 88, 12, 0.45)';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+    }
+
+    const alpha = sim.alpha;
+    if (Math.abs(alpha) > 0.015) {
+      const start = -Math.PI / 2;
+      const end = start + alpha;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * 0.58, start, end, alpha < 0);
+      ctx.strokeStyle = 'rgba(220, 38, 38, 0.55)';
+      ctx.lineWidth = 3.5;
+      ctx.stroke();
+    }
+
+    const vp = compassPoint(cx, cy, r * 0.82, sim.H);
+    drawArrow2D(ctx, cx, cy, vp.x, vp.y, '#ea580c', 3, 12);
+
+    const gp = compassPoint(cx, cy, r * 0.72, alpha);
+    drawArrow2D(ctx, cx, cy, gp.x, gp.y, '#2563eb', 2.4, 10);
+
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 2.6, 0, TAU);
+    ctx.fill();
+  }
+
+  function drawHorizon() {
+    fitHorizon();
+    const ctx = horizon.ctx;
+    const W = horizon.W, H = horizon.H;
+    ctx.clearRect(0, 0, W, H);
+    const cx = W / 2;
+    const cy = H / 2;
+    const pitchDeg = sim.pitch * RAD;
+    const shift = clamp(pitchDeg * 2.5, -52, 52);
+    const yh = cy + shift;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(1.5, 1.5, W - 3, H - 3);
+    ctx.clip();
+
+    ctx.fillStyle = '#e0f2fe';
+    ctx.fillRect(0, 0, W, yh);
+    ctx.fillStyle = '#f3e5cf';
+    ctx.fillRect(0, yh, W, H - yh);
+
+    ctx.strokeStyle = '#f97316';
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.moveTo(0, yh);
+    ctx.lineTo(W, yh);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(249, 115, 22, 0.55)';
+    ctx.lineWidth = 1;
+    for (let x = cx - 80; x <= cx + 80; x += 20) {
+      if (x === cx) continue;
+      ctx.beginPath();
+      ctx.moveTo(x, yh - 3);
+      ctx.lineTo(x, yh + 3);
+      ctx.stroke();
+    }
+
+    ctx.setLineDash([6, 4]);
+    ctx.strokeStyle = '#2563eb';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(8, cy);
+    ctx.lineTo(W - 8, cy);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.78)';
+    ctx.fillRect(6, 4, 86, 19);
+
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx - 24, cy);
+    ctx.lineTo(cx - 8, cy);
+    ctx.moveTo(cx + 8, cy);
+    ctx.lineTo(cx + 24, cy);
+    ctx.moveTo(cx, cy - 7);
+    ctx.lineTo(cx, cy + 7);
+    ctx.stroke();
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 2.4, 0, TAU);
+    ctx.fill();
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.font = '600 11px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.fillStyle = '#0f172a';
+    ctx.fillText('β = ' + (pitchDeg >= 0 ? '+' : '') + fmt(pitchDeg, 1) + '°', 8, 7);
+
+    ctx.restore();
+    ctx.strokeStyle = '#dbe3ee';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(1.5, 1.5, W - 3, H - 3);
+  }
+
+  function updateReadouts() {
+    const Rg = qToMat(sim.q);
+    const axis = mVec(Rg, Z_AXIS);
+    const alpha = Math.atan2(axis.x, axis.y);
+    sim.alpha = alpha;
+
+    const Lb = mTVec(Rg, sim.L);
+    const w = { x: Lb.x / P.Iperp, y: Lb.y / P.Iperp, z: Lb.z / P.Ipar };
+    const Ll = vlen(sim.L);
+    const wl = vlen(w);
+    const theta = Math.acos(clamp(axis.z, -1, 1)) * RAD;
+    const hDeg = norm360(sim.H * RAD);
+    const alphaDeg = normPi(alpha) * RAD;
+    const measured = norm360((sim.H - alpha) * RAD);
+    const errDeg = normPi(-alpha) * RAD;
+
+    $('roL').textContent = fmt(Ll, 2);
+    $('roW').textContent = fmt(wl, 2) + ' rad/s';
+    $('roAlpha').textContent = fmt(alphaDeg, 1) + '°';
+    $('roTheta').textContent = fmt(theta, 1) + '°';
+    $('roPitch').textContent = fmt(sim.pitch * RAD, 1) + '°';
+    $('roH').textContent = fmt(hDeg, 1) + '°';
+    $('roMeasured').textContent = fmt(measured, 1) + '°';
+    $('roErr').textContent = fmt(errDeg, 2) + '°';
+    $('roTime').textContent = fmt(sim.t, 1) + ' s';
+
+    $('eqReadout').textContent =
+      'L = (' + fmt(sim.L.x) + ', ' + fmt(sim.L.y) + ', ' + fmt(sim.L.z) + ')    ' +
+      'ω = (' + fmt(w.x) + ', ' + fmt(w.y) + ', ' + fmt(w.z) + ')';
+
+    const mode = $('roMode');
+    mode.textContent = '载体转向/俯仰 · 陀螺轴锁定惯性方向';
+    mode.className = 'status ok';
+
+    $('sHeading').value = String(Math.round(hDeg));
+    $('vHeading').textContent = Math.round(hDeg) + '°';
+
+    $('sPitch').value = String(Math.round(sim.pitch * RAD));
+    $('vPitch').textContent = fmt(sim.pitch * RAD, 1) + '°';
+  }
+
+  function renderAll() {
+    fitView(views.inertial);
+    fitView(views.body);
+    buildCamera(views.inertial);
+    drawScene(views.inertial);
+    buildCamera(views.body);
+    drawScene(views.body);
+    drawCompass();
+    drawHorizon();
+  }
+
+  function updateAttitude() {
+    if (P.autoTurn) {
+      const ph = 0.62 * Math.max(0, sim.t - 1.0);
+      sim.H = H0 + 1.05 * Math.sin(ph);
+    } else {
+      sim.H = P.headingTarget;
+    }
+    if (P.autoPitch) {
+      const ph = 0.9 * Math.max(0, sim.t - 1.2);
+      sim.pitch = P.pitchAmp * Math.sin(ph);
+    } else {
+      sim.pitch = P.pitchTarget;
+    }
+    updateCasePose();
+  }
+
+  let last = performance.now();
+
+  function loop(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    if (P.running) {
+      const sdt = dt * P.timeScale;
+      sim.t += sdt;
+      updateAttitude();
+      const steps = clamp(Math.ceil(sdt / 0.025), 2, 6);
+      for (let i = 0; i < steps; i++) stepPhysics(sdt / steps);
+      addTrail(sdt);
+    }
+    renderAll();
+    updateReadouts();
+    requestAnimationFrame(loop);
+  }
+
+  function setPlayLabel() {
+    $('btnPlay').textContent = P.running ? '暂停' : '继续';
+  }
+
+  function attachViewControls(v) {
+    const canvas = v.canvas;
+    let dragging = false;
+    let lx = 0, ly = 0;
+
+    canvas.addEventListener('pointerdown', e => {
+      dragging = true;
+      lx = e.clientX;
+      ly = e.clientY;
+      canvas.setPointerCapture(e.pointerId);
+      canvas.style.cursor = 'grabbing';
+    });
+    canvas.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      const dx = e.clientX - lx;
+      const dy = e.clientY - ly;
+      lx = e.clientX;
+      ly = e.clientY;
+      v.cam.yaw += dx * 0.006;
+      v.cam.pitch = clamp(v.cam.pitch + dy * 0.005, -0.12, 1.32);
+    });
+    canvas.addEventListener('pointerup', e => {
+      dragging = false;
+      canvas.style.cursor = 'grab';
+      try { canvas.releasePointerCapture(e.pointerId); } catch (err) {}
+    });
+    canvas.addEventListener('pointercancel', () => {
+      dragging = false;
+      canvas.style.cursor = 'grab';
+    });
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      v.cam.dist = clamp(v.cam.dist * Math.exp(e.deltaY * 0.001), 4.5, 18);
+    }, { passive: false });
+    canvas.addEventListener('dblclick', () => {
+      v.cam.yaw = 0.7;
+      v.cam.pitch = 0.5;
+      v.cam.dist = 8.8;
+    });
+  }
+
+  function syncControlState() {
+    $('sPitchAmp').disabled = !P.autoPitch;
+    $('vSpin').textContent = P.spin.toFixed(1) + ' rad/s';
+    $('vPitchAmp').textContent = (P.pitchAmp * RAD).toFixed(0) + '°';
+    $('vSpeed').textContent = P.timeScale.toFixed(1) + '×';
+  }
+
+  function bindUI() {
+    $('sSpin').addEventListener('input', e => {
+      P.spin = +e.target.value;
+      syncControlState();
+      resetSim();
+    });
+    $('sHeading').addEventListener('input', e => {
+      P.autoTurn = false;
+      $('chkAuto').checked = false;
+      P.headingTarget = (+e.target.value) * DEG;
+      sim.H = P.headingTarget;
+      updateCasePose();
+    });
+    $('chkAuto').addEventListener('change', e => {
+      P.autoTurn = e.target.checked;
+      if (!P.autoTurn) {
+        P.headingTarget = normPi(sim.H);
+        if (P.headingTarget < 0) P.headingTarget += TAU;
+        $('sHeading').value = String(Math.round(norm360(P.headingTarget * RAD)));
+      }
+    });
+    $('sPitch').addEventListener('input', e => {
+      P.autoPitch = false;
+      $('chkAutoPitch').checked = false;
+      P.pitchTarget = (+e.target.value) * DEG;
+      sim.pitch = P.pitchTarget;
+      updateCasePose();
+      syncControlState();
+    });
+    $('chkAutoPitch').addEventListener('change', e => {
+      P.autoPitch = e.target.checked;
+      if (!P.autoPitch) {
+        P.pitchTarget = sim.pitch;
+        $('sPitch').value = String(Math.round(sim.pitch * RAD));
+      }
+      syncControlState();
+    });
+    $('sPitchAmp').addEventListener('input', e => {
+      P.pitchAmp = (+e.target.value) * DEG;
+      syncControlState();
+    });
+    $('sSpeed').addEventListener('input', e => {
+      P.timeScale = +e.target.value;
+      syncControlState();
+    });
+    $('btnPlay').addEventListener('click', () => {
+      P.running = !P.running;
+      setPlayLabel();
+    });
+    $('btnReset').addEventListener('click', () => {
+      P.running = true;
+      setPlayLabel();
+      resetSim();
+    });
+
+    const binds = [
+      ['chkGrid', 'showGrid'],
+      ['chkL', 'showL'],
+      ['chkW', 'showW'],
+      ['chkAxis', 'showAxis'],
+      ['chkGimbal', 'showGimbal'],
+      ['chkTrail', 'showTrail']
+    ];
+    for (let i = 0; i < binds.length; i++) {
+      const el = $(binds[i][0]);
+      el.addEventListener('change', () => {
+        P[binds[i][1]] = el.checked;
+      });
+    }
+  }
+
+  resetSim();
+  syncControlState();
+  setPlayLabel();
+  bindUI();
+  attachViewControls(views.inertial);
+  attachViewControls(views.body);
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
+

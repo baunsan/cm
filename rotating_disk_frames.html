@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>转动参考系 · 惯性系</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    margin: 0; padding: 18px 22px 22px;
+    background: #f5f6f8; color: #222;
+    display: flex; flex-direction: column;
+  }
+  header { max-width: 1240px; width: 100%; margin: 0 auto 12px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #666; font-size: 13px; line-height: 1.7; }
+  .sub code {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12.5px; color: #1e3a8a;
+    background: #eef2f9; border: 1px solid #dde5f1;
+    padding: 1px 6px; border-radius: 5px;
+  }
+
+  .wrap {
+    max-width: 1240px; width: 100%; margin: 0 auto;
+    flex: 1; min-height: 0; display: flex; gap: 18px;
+  }
+  .panels {
+    flex: 1; min-width: 0; min-height: 0;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+  }
+  .card {
+    background: #fff; border: 1px solid #d0d4da; border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.06);
+  }
+  .panel {
+    min-width: 0; min-height: 0; display: flex; flex-direction: column;
+    padding: 10px 12px 12px;
+  }
+  .panel-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; flex-wrap: wrap; padding: 0 2px 8px;
+  }
+  .panel-title { display: flex; align-items: baseline; gap: 7px; min-width: 0; }
+  .panel-title b { font-size: 14px; color: #0f172a; font-weight: 600; }
+  .panel-title span { font-size: 11px; color: #94a3b8; white-space: nowrap; }
+  .mini { font-size: 11px; color: #64748b; white-space: nowrap; }
+  .canvas-wrap { position: relative; flex: 1; min-height: 0; }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .force-toolbar {
+    position: absolute; top: 10px; left: 10px; z-index: 2;
+    display: flex; align-items: center; gap: 8px; flex-wrap: nowrap;
+    max-width: calc(100% - 20px);
+  }
+  .canvas-toggle {
+    flex: none; width: auto; padding: 5px 10px;
+    border: 1px solid #cbd5e1; border-radius: 999px;
+    background: rgba(255,255,255,.92); color: #475569;
+    font-size: 11.5px; line-height: 1.3; cursor: pointer;
+    box-shadow: 0 1px 5px rgba(15,23,42,.08);
+    backdrop-filter: blur(2px);
+  }
+  .canvas-toggle:hover { background: #f8fafc; }
+  .canvas-toggle.active {
+    background: #f5f3ff; border-color: #c4b5fd; color: #6d28d9; font-weight: 600;
+  }
+
+  .force-legend {
+    display: flex; align-items: center; gap: 9px;
+    padding: 4px 9px; border: 1px solid #e2e8f0; border-radius: 999px;
+    background: rgba(255,255,255,.88); box-shadow: 0 1px 4px rgba(15,23,42,.06);
+    font-size: 10.5px; color: #64748b; backdrop-filter: blur(2px);
+    white-space: nowrap;
+  }
+  .force-legend[hidden] { display: none; }
+  .force-legend span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+  .sw { display: inline-block; width: 16px; height: 0; vertical-align: 3px; }
+  .sw.cf { border-top: 2px solid #dc2626; }
+  .sw.cor { border-top: 2px solid #7c3aed; }
+
+  aside {
+    width: 330px; flex: 0 0 330px;
+    background: #fff; border: 1px solid #d0d4da; border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.06);
+    padding: 16px 18px; overflow-y: auto;
+  }
+  aside h2 { font-size: 14px; margin: 0 0 10px; letter-spacing: .3px; }
+  aside h2:not(:first-child) { margin-top: 16px; }
+  .row { margin-bottom: 12px; }
+  .dis { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; margin-bottom: 3px; }
+  .dis .val { font-variant-numeric: tabular-nums; color: #ea580c; font-weight: 600; font-size: 12.5px; }
+  input[type=range] { width: 100%; accent-color: #ea580c; }
+  .fixed {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 7px 9px; border: 1px solid #e3e8ef; border-radius: 8px;
+    background: #f7f9fc; font-size: 12px; color: #64748b;
+  }
+  .fixed b { color: #2563eb; font-variant-numeric: tabular-nums; }
+  .buttons { display: flex; gap: 8px; }
+  button {
+    flex: 1; padding: 8px 0; border: 1px solid #cbd2dc; border-radius: 8px;
+    background: #fff; font-size: 12.5px; cursor: pointer; color: #222;
+    transition: background .15s, border-color .15s;
+  }
+  button:hover { background: #eef2f7; }
+  button.primary { background: #ea580c; color: #fff; border-color: #ea580c; }
+  button.primary:hover { background: #c2410c; }
+  button:active { transform: translateY(1px); }
+
+  .hint { font-size: 11px; color: #94a3b8; line-height: 1.65; margin: 7px 0 0; }
+  .progress-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 11.5px; color: #64748b; margin: 12px 0 5px;
+  }
+  .progress-head b {
+    color: #ea580c; font-size: 12px; font-variant-numeric: tabular-nums;
+  }
+  .progress-track {
+    height: 7px; border: 1px solid #e3e8ef; border-radius: 999px;
+    background: #eef2f7; overflow: hidden;
+  }
+  .progress-fill {
+    width: 0; height: 100%; border-radius: 999px;
+    background: linear-gradient(90deg, #fb923c, #ea580c);
+    transition: width .06s linear;
+  }
+
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat {
+    background: #f7f9fc; border: 1px solid #e3e8ef; border-radius: 8px;
+    padding: 7px 9px; font-size: 10.5px; color: #6b7280;
+  }
+  .stat b {
+    display: block; margin-top: 2px; font-size: 13px; color: #0f172a;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .stat b span { font-size: 10.5px; font-weight: 500; color: #94a3b8; }
+
+  .eq {
+    margin-top: 10px; padding: 9px 11px; border-radius: 8px;
+    background: #f7f9fc; border: 1px solid #e8ebf0;
+    font-size: 11.5px; color: #475569; line-height: 1.9;
+  }
+  .eq b { color: #334155; font-weight: 600; }
+  .eq code { font-family: ui-monospace, "SF Mono", Menlo, monospace; color: #1e3a8a; font-size: 11.5px; }
+
+  .legend { font-size: 11.5px; color: #64748b; line-height: 1.95; margin-top: 10px; }
+  .legend .sw { margin-right: 6px; }
+  .sw.blue { border-top: 2px solid #2563eb; }
+  .sw.orange { border-top: 2px solid #ea580c; }
+  .sw.full { border-top: 1.5px dashed #94a3b8; }
+  .sw.disk { border-top: 2px solid #0f766e; }
+
+  .note { font-size: 11.5px; color: #8b95a7; line-height: 1.72; margin: 10px 0 0; }
+
+  @media (max-width: 1040px) {
+    body { height: auto; min-height: 100%; overflow-y: auto; }
+    .wrap { flex-direction: column; }
+    .panels { flex: 0 0 auto; }
+    .panel { height: 430px; }
+    aside { width: 100%; flex: 0 0 auto; overflow: visible; }
+  }
+  @media (max-width: 720px) {
+    body { padding: 14px; }
+    .panels { grid-template-columns: 1fr; }
+    .panel { height: 350px; }
+    .panel-head { min-height: 28px; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>转动参考系 · 惯性力</h1>
+    <div class="sub">
+      圆盘半径 <code>R = 1.00 m</code>，从圆盘右侧出发到达左侧。
+      惯性系中轨迹为直线；随圆盘转动的参考系中轨迹弯曲。改变 <code>Ω</code>、<code>α</code> 或 <code>v</code> 进行对比。
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="panels">
+      <section class="card panel">
+        <div class="panel-head">
+          <div class="panel-title"><b>惯性系</b><span>实验室系</span></div>
+          <div class="mini">无水平力 · 从右向左匀速直线</div>
+        </div>
+        <div class="canvas-wrap"><canvas id="cvInertial"></canvas></div>
+      </section>
+
+      <section class="card panel">
+        <div class="panel-head">
+          <div class="panel-title"><b>随圆盘转动系</b><span>x′–y′</span></div>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="cvRotating"></canvas>
+          <div class="force-toolbar">
+            <button class="canvas-toggle" id="btnForces" type="button" aria-pressed="false">显示惯性力</button>
+            <div class="force-legend" id="forceLegend" hidden>
+              <span><i class="sw cf"></i>离心力</span>
+              <span><i class="sw cor"></i>科里奥利力</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <aside>
+      <h2>转动速度</h2>
+      <div class="row">
+        <div class="dis"><label for="omega">圆盘角速度 Ω</label><span class="val" id="vOmega">2.00 rad/s</span></div>
+        <input type="range" id="omega" min="-5" max="5" step="0.01" value="2">
+      </div>
+      <div class="buttons" style="margin-top:8px">
+        <button id="btnZero" type="button">静止</button>
+      </div>
+      
+      <h2>质点参数</h2>
+        <div class="row">
+        <div class="dis"><label for="speed">质点速度 v</label><span class="val" id="vSpeed">0.5 m/s</span></div>
+        <input type="range" id="speed" min="0" max="1" step="0.1" value="0.5">
+      </div>
+      <div class="row">
+        <div class="dis"><label for="alpha">初始位置</label><span class="val" id="vAlpha">25.0°</span></div>
+        <input type="range" id="alpha" min="0" max="60" step="0.5" value="25">
+      </div>
+      <p class="hint">范围 0°–60°，从右侧 +x 轴量起；质点沿水平方向从右向左运动。</p>
+
+
+      <h2>播放控制</h2>
+      <div class="row">
+        <div class="dis"><label for="playback">播放速度</label><span class="val" id="vPlayback">1.00×</span></div>
+        <input type="range" id="playback" min="0.25" max="3" step="0.05" value="1">
+      </div>
+      <div class="progress-head"><span>运动进度</span><b id="vProgress">0.0%</b></div>
+      <div class="progress-track" id="progressTrack" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+
+      <div class="buttons" style="margin-top:10px">
+        <button id="btnPlay" class="primary">暂停</button>
+        <button id="btnReset">重置</button>
+      </div>
+      <p class="hint">播放速度只改变动画快慢，不改变物理结果。右侧画布左上角的按钮控制惯性力箭头。</p>
+
+      <h2>实时读数</h2>
+      <div class="stats">
+        <div class="stat">当前时间 t<b id="roTime">0.00 <span>/ 3.63 s</span></b></div>
+        <div class="stat">圆盘转角 Ωt<b id="roAngle">0.00 <span>rad</span></b></div>
+        <div class="stat">全程转过<b id="roTurns">1.15 圈</b></div>
+        <div class="stat">质点极角 α<b id="roAlpha">25.0°</b></div>
+        <div class="stat">惯性系位置 (x, y)<b id="roInertial">0.91, 0.42</b></div>
+        <div class="stat">随盘系位置 (x′, y′)<b id="roRotating">0.91, 0.42</b></div>
+      </div>
+
+      <div class="eq">
+        <b>坐标变换</b><br>
+        <code>x′ = x cos Ωt + y sin Ωt</code><br>
+        <code>y′ = −x sin Ωt + y cos Ωt</code>
+      </div>
+
+      <div class="eq">
+        <b>转动系中的惯性力</b><br>
+        <code>a离心 = Ω² r′</code><br>
+        <code>a科氏 = −2Ω × v′</code><br>
+        两者共同解释“直线为何变曲线”。
+      </div>
+
+      <div class="legend">
+        <div><span class="sw blue"></span>惯性系轨迹（右 → 左）</div>
+        <div><span class="sw orange"></span>随盘系轨迹</div>
+        <div><span class="sw full"></span>完整轨迹（虚线）</div>
+        <div><span class="sw disk"></span>圆盘上的参考标记</div>
+      </div>
+
+      <p class="note">
+        惯性系中质点不受水平力，因此轨迹是直线；转动系只是换了一组随盘旋转的坐标，
+        轨迹读数自然弯曲。Ω = 0 时两图轨迹完全重合。改变 Ω、α 或 v 会重新计算轨迹并从头播放。
+      </p>
+    </aside>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+
+  const R = 1;
+  let N = 1200;
+  const HOLD = 0.9;
+
+  const C_INERTIAL = '#2563eb';
+  const C_ROTATING = '#ea580c';
+  const C_CENTRIFUGAL = '#dc2626';
+  const C_CORIOLIS = '#7c3aed';
+  const C_DISK = '#0f766e';
+
+  const $ = id => document.getElementById(id);
+  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+
+  const inertialCanvas = $('cvInertial');
+  const inertialCtx = inertialCanvas.getContext('2d');
+  const rotatingCanvas = $('cvRotating');
+  const rotatingCtx = rotatingCanvas.getContext('2d');
+
+  const el = {
+    omega: $('omega'),
+    vOmega: $('vOmega'),
+    btnZero: $('btnZero'),
+    alpha: $('alpha'),
+    vAlpha: $('vAlpha'),
+    speed: $('speed'),
+    vSpeed: $('vSpeed'),
+    btnPlay: $('btnPlay'),
+    btnReset: $('btnReset'),
+    btnForces: $('btnForces'),
+    forceLegend: $('forceLegend'),
+    playback: $('playback'),
+    vPlayback: $('vPlayback'),
+    vProgress: $('vProgress'),
+    progressTrack: $('progressTrack'),
+    progressFill: $('progressFill'),
+    roTime: $('roTime'),
+    roAngle: $('roAngle'),
+    roTurns: $('roTurns'),
+    roAlpha: $('roAlpha'),
+    roInertial: $('roInertial'),
+    roRotating: $('roRotating')
+  };
+
+  const state = {
+    omega: 2,
+    alphaDeg: 25,
+    speed: 0.5,
+    playback: 1,
+    t: 0,
+    hold: 0,
+    playing: true,
+    showForces: false,
+    samples: [],
+    totalTime: 0,
+    startX: 0,
+    startY: 0
+  };
+
+  function buildTrajectory() {
+    const alpha = state.alphaDeg * Math.PI / 180;
+    const speed = state.speed;
+    const absOmega = Math.abs(state.omega);
+    const x0 = R * Math.cos(alpha);
+    const y0 = R * Math.sin(alpha);
+
+    let totalTime;
+    if (speed > 0) {
+      totalTime = 2 * x0 / speed;
+    } else if (absOmega > 1e-9) {
+      totalTime = 2 * Math.PI / absOmega;
+    } else {
+      totalTime = 1;
+    }
+
+    const totalAngle = absOmega * totalTime;
+    N = Math.min(6000, Math.max(1200, Math.ceil(totalAngle / (Math.PI * 2) * 160)));
+
+    const arr = new Array(N + 1);
+    state.startX = x0;
+    state.startY = y0;
+    state.totalTime = totalTime;
+
+    for (let i = 0; i <= N; i++) {
+      const t = totalTime * i / N;
+      const X = speed > 0 ? x0 - speed * t : x0;
+      const Y = y0;
+      const theta = state.omega * t;
+      const c = Math.cos(theta);
+      const s = Math.sin(theta);
+      arr[i] = {
+        t: t,
+        X: X,
+        Y: Y,
+        xr: c * X + s * Y,
+        yr: -s * X + c * Y
+      };
+    }
+    state.samples = arr;
+  }
+
+  function sampleAt(t) {
+    const u = clamp(t / state.totalTime, 0, 1);
+    const f = u * N;
+    const i = Math.min(N - 1, Math.floor(f));
+    const w = f - i;
+    const a = state.samples[i];
+    const b = state.samples[i + 1];
+    return {
+      X: a.X + (b.X - a.X) * w,
+      Y: a.Y + (b.Y - a.Y) * w,
+      xr: a.xr + (b.xr - a.xr) * w,
+      yr: a.yr + (b.yr - a.yr) * w
+    };
+  }
+
+  function fit(canvas, ctx) {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const w = Math.max(1, rect.width);
+    const h = Math.max(1, rect.height);
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { w: w, h: h };
+  }
+
+  function drawArrow(ctx, x1, y1, x2, y2, color) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const len = Math.hypot(dx, dy);
+    if (len < 6) return;
+
+    const ux = dx / len;
+    const uy = dy / len;
+    const head = Math.min(10, len * 0.36);
+    const half = head * 0.48;
+
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - ux * head - uy * half, y2 - uy * head + ux * half);
+    ctx.lineTo(x2 - ux * head + uy * half, y2 - uy * head - ux * half);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawDisk(ctx, cx, cy, scale, theta) {
+    const radius = R * scale;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.fillStyle = '#fbfcfe';
+    ctx.fill();
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    ctx.clip();
+
+    ctx.strokeStyle = 'rgba(148,163,184,0.16)';
+    ctx.lineWidth = 1;
+    for (let k = 1; k <= 2; k++) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius * k / 3, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = 'rgba(148,163,184,0.22)';
+    for (let k = 0; k < 12; k++) {
+      const a = theta + k * Math.PI / 6;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(a) * radius, cy - Math.sin(a) * radius);
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = C_DISK;
+    ctx.lineWidth = 2.4;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(theta) * radius, cy - Math.sin(theta) * radius);
+    ctx.stroke();
+
+    const mx = cx + Math.cos(theta) * radius * 0.88;
+    const my = cy - Math.sin(theta) * radius * 0.88;
+    ctx.beginPath();
+    ctx.arc(mx, my, 4.2, 0, Math.PI * 2);
+    ctx.fillStyle = C_DISK;
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawAxes(ctx, cx, cy, scale, prime) {
+    const ext = R * 1.07 * scale;
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(148,163,184,0.36)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 5]);
+    ctx.beginPath();
+    ctx.moveTo(cx - ext, cy);
+    ctx.lineTo(cx + ext, cy);
+    ctx.moveTo(cx, cy - ext);
+    ctx.lineTo(cx, cy + ext);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '11px ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'top';
+    ctx.fillText(prime ? 'x′' : 'x', cx + ext - 3, cy + 5);
+    ctx.textAlign = 'left';
+    ctx.fillText(prime ? 'y′' : 'y', cx + 5, cy - ext + 1);
+    ctx.restore();
+  }
+
+  function drawFullPath(ctx, samples, keyX, keyY, cx, cy, scale, color) {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.setLineDash([5, 6]);
+    ctx.beginPath();
+    for (let i = 0; i <= N; i++) {
+      const p = samples[i];
+      const x = cx + p[keyX] * scale;
+      const y = cy - p[keyY] * scale;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawTrail(ctx, samples, keyX, keyY, cx, cy, scale, color, current, index) {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let i = 0; i <= index; i++) {
+      const p = samples[i];
+      const x = cx + p[keyX] * scale;
+      const y = cy - p[keyY] * scale;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.lineTo(cx + current[keyX] * scale, cy - current[keyY] * scale);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawParticle(ctx, x, y, color, glow) {
+    const gradient = ctx.createRadialGradient(x, y, 0, x, y, 16);
+    gradient.addColorStop(0, glow);
+    gradient.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.beginPath();
+    ctx.arc(x, y, 16, 0, Math.PI * 2);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(x, y, 5.5, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2.2;
+    ctx.stroke();
+  }
+
+  function drawCenter(ctx, cx, cy) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, 3.2, 0, Math.PI * 2);
+    ctx.fillStyle = '#94a3b8';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+  }
+
+  function currentRotatingVelocity(t, p) {
+    const theta = state.omega * t;
+    const c = Math.cos(theta);
+    const s = Math.sin(theta);
+    const vxWorld = -state.speed;
+    return {
+      vx: c * vxWorld + state.omega * p.yr,
+      vy: -s * vxWorld - state.omega * p.xr
+    };
+  }
+
+  function drawForces(ctx, cx, cy, scale, p, t) {
+    const omega = state.omega;
+    const vel = currentRotatingVelocity(t, p);
+
+    const cfx = omega * omega * p.xr;
+    const cfy = omega * omega * p.yr;
+    const cox = 2 * omega * vel.vy;
+    const coy = -2 * omega * vel.vx;
+
+    const maxMag = Math.max(Math.hypot(cfx, cfy), Math.hypot(cox, coy), 1e-9);
+    const pxPerAcc = Math.min(18, 82 / maxMag);
+
+    const x = cx + p.xr * scale;
+    const y = cy - p.yr * scale;
+
+    drawArrow(ctx, x, y, x + cfx * pxPerAcc, y - cfy * pxPerAcc, C_CENTRIFUGAL);
+    drawArrow(ctx, x, y, x + cox * pxPerAcc, y - coy * pxPerAcc, C_CORIOLIS);
+  }
+
+  function drawPanel(canvas, ctx, mode) {
+    const size = fit(canvas, ctx);
+    const w = size.w;
+    const h = size.h;
+    ctx.clearRect(0, 0, w, h);
+    if (w < 80 || h < 80) return;
+
+    const cx = w / 2;
+    const cy = h / 2;
+    const scale = Math.min(w, h) * 0.5 * 0.82 / R;
+    const theta = mode === 'inertial' ? state.omega * state.t : 0;
+    const current = sampleAt(state.t);
+    const index = Math.min(N, Math.floor(state.t / state.totalTime * N + 1e-9));
+
+    drawDisk(ctx, cx, cy, scale, theta);
+    drawAxes(ctx, cx, cy, scale, mode === 'rotating');
+
+    const keyX = mode === 'inertial' ? 'X' : 'xr';
+    const keyY = mode === 'inertial' ? 'Y' : 'yr';
+    const color = mode === 'inertial' ? C_INERTIAL : C_ROTATING;
+    const glow = mode === 'inertial' ? 'rgba(37,99,235,0.16)' : 'rgba(234,88,12,0.16)';
+    const fullColor = mode === 'inertial' ? 'rgba(37,99,235,0.30)' : 'rgba(234,88,12,0.30)';
+
+    drawFullPath(ctx, state.samples, keyX, keyY, cx, cy, scale, fullColor);
+    drawTrail(ctx, state.samples, keyX, keyY, cx, cy, scale, color, current, index);
+
+    if (mode === 'rotating' && state.showForces) {
+      drawForces(ctx, cx, cy, scale, current, state.t);
+    }
+
+    drawParticle(
+      ctx,
+      cx + current[keyX] * scale,
+      cy - current[keyY] * scale,
+      color,
+      glow
+    );
+    drawCenter(ctx, cx, cy);
+  }
+
+  function syncPlayButton() {
+    el.btnPlay.textContent = state.playing ? '暂停' : '继续';
+    el.btnPlay.classList.toggle('primary', state.playing);
+  }
+
+  function updateReadouts() {
+    const p = sampleAt(state.t);
+    const theta = state.omega * state.t;
+    const turns = Math.abs(state.omega) * state.totalTime / (Math.PI * 2);
+    const progress = clamp(state.t / state.totalTime, 0, 1);
+    const percent = progress * 100;
+
+    el.vOmega.textContent = state.omega.toFixed(2) + ' rad/s';
+    el.vAlpha.textContent = state.alphaDeg.toFixed(1) + '°';
+    el.vSpeed.textContent = state.speed.toFixed(1) + ' m/s';
+    el.vPlayback.textContent = state.playback.toFixed(2) + '×';
+    el.vProgress.textContent = percent.toFixed(1) + '%';
+    el.progressFill.style.width = percent.toFixed(2) + '%';
+    el.progressTrack.setAttribute('aria-valuenow', percent.toFixed(0));
+    el.roTime.innerHTML = state.t.toFixed(2) + ' <span>/ ' + state.totalTime.toFixed(2) + ' s</span>';
+    el.roAngle.innerHTML = theta.toFixed(2) + ' <span>rad</span>';
+    el.roTurns.textContent = turns.toFixed(2) + ' 圈';
+    el.roAlpha.textContent = state.alphaDeg.toFixed(1) + '°';
+    el.roInertial.textContent = p.X.toFixed(2) + ', ' + p.Y.toFixed(2) + ' m';
+    el.roRotating.textContent = p.xr.toFixed(2) + ', ' + p.yr.toFixed(2) + ' m';
+  }
+
+  function resetMotion(play) {
+    state.t = 0;
+    state.hold = 0;
+    if (play) state.playing = true;
+    syncPlayButton();
+    updateReadouts();
+  }
+
+  function rebuild() {
+    buildTrajectory();
+    resetMotion(false);
+  }
+
+  let last = 0;
+  function frame(now) {
+    if (!last) last = now;
+    const dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
+    const simDt = dt * state.playback;
+    last = now;
+
+    if (state.playing) {
+      if (state.t < state.totalTime - 1e-9) {
+        state.t = Math.min(state.totalTime, state.t + simDt);
+        if (state.t >= state.totalTime - 1e-9) state.hold = 0;
+      } else {
+        state.hold += dt;
+        if (state.hold >= HOLD) {
+          state.t = 0;
+          state.hold = 0;
+        }
+      }
+    }
+
+    drawPanel(inertialCanvas, inertialCtx, 'inertial');
+    drawPanel(rotatingCanvas, rotatingCtx, 'rotating');
+    updateReadouts();
+    requestAnimationFrame(frame);
+  }
+
+  el.omega.addEventListener('input', function () {
+    state.omega = parseFloat(this.value);
+    rebuild();
+  });
+
+  el.alpha.addEventListener('input', function () {
+    state.alphaDeg = parseFloat(this.value);
+    rebuild();
+  });
+
+  el.speed.addEventListener('input', function () {
+    state.speed = parseFloat(this.value);
+    rebuild();
+  });
+
+  el.btnZero.addEventListener('click', function () {
+    el.omega.value = '0';
+    state.omega = 0;
+    rebuild();
+  });
+
+  el.playback.addEventListener('input', function () {
+    state.playback = parseFloat(this.value);
+    updateReadouts();
+  });
+
+  el.btnPlay.addEventListener('click', function () {
+    state.playing = !state.playing;
+    syncPlayButton();
+  });
+
+  el.btnReset.addEventListener('click', function () {
+    resetMotion(true);
+    state.hold = 0;
+  });
+
+  el.btnForces.addEventListener('click', function () {
+    state.showForces = !state.showForces;
+    syncForceButton();
+  });
+
+  function syncForceButton() {
+    el.btnForces.textContent = state.showForces ? '隐藏惯性力' : '显示惯性力';
+    el.btnForces.classList.toggle('active', state.showForces);
+    el.btnForces.setAttribute('aria-pressed', String(state.showForces));
+    el.forceLegend.hidden = !state.showForces;
+  }
+
+  state.omega = parseFloat(el.omega.value);
+  state.alphaDeg = parseFloat(el.alpha.value);
+  state.speed = parseFloat(el.speed.value);
+  state.playback = parseFloat(el.playback.value);
+  syncForceButton();
+  buildTrajectory();
+  syncPlayButton();
+  updateReadouts();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

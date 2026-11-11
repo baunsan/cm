@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>耦合摆 · 简正模演示</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    margin: 0; padding: 18px 22px 22px;
+    background: #f5f6f8; color: #222;
+    display: flex; flex-direction: column;
+  }
+  header { max-width: 1240px; width: 100%; margin: 0 auto 12px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #666; font-size: 13px; }
+  .wrap {
+    max-width: 1240px; width: 100%; margin: 0 auto;
+    flex: 1; min-height: 0; display: flex; gap: 18px;
+  }
+  .left { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+  .card {
+    background: #fff; border: 1px solid #d0d4da; border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.06);
+  }
+  #stageCard { flex: 1; min-height: 320px; overflow: hidden; position: relative; }
+  #stage { width: 100%; height: 100%; display: block; }
+  #plotCard {
+    height: 208px; padding: 8px 10px 6px;
+    display: flex; flex-direction: column;
+  }
+  #plot { flex: 1; min-height: 0; width: 100%; display: block; }
+  .plot-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 2px 6px; font-size: 12px; color: #64748b;
+  }
+  .plot-head em { font-style: normal; color: #94a3b8; margin-left: 6px; font-variant-numeric: tabular-nums; }
+  .chip {
+    flex: 0 0 auto; padding: 4px 12px; font-size: 11.5px; border-radius: 999px;
+    border: 1px solid #cbd2dc; background: #fff; color: #64748b; line-height: 1.4;
+  }
+  .chip:hover { background: #f1f5f9; }
+  .chip.active { background: #eff6ff; border-color: #bfdbfe; color: #2563eb; }
+
+  aside {
+    width: 312px; flex: 0 0 312px;
+    background: #fff; border: 1px solid #d0d4da; border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.06);
+    padding: 14px 16px; overflow-y: auto;
+  }
+  aside h2 { font-size: 14px; margin: 0 0 8px; letter-spacing: .3px; }
+  aside h2:not(:first-child) { margin-top: 13px; }
+  .row { margin-bottom: 8px; }
+  .dis { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; margin-bottom: 2px; }
+  .dis .val { font-variant-numeric: tabular-nums; color: #2563eb; font-weight: 600; }
+  input[type=range] { width: 100%; accent-color: #2563eb; }
+  .buttons { display: flex; gap: 8px; }
+  button {
+    flex: 1; padding: 8px 0; border: 1px solid #cbd2dc; border-radius: 8px;
+    background: #fff; font-size: 13px; cursor: pointer; color: #222;
+    transition: background .15s, border-color .15s;
+  }
+  button:hover { background: #eef2f7; }
+  button.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+  button.primary:hover { background: #1d4ed8; }
+  button:active { transform: translateY(1px); }
+
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .stat {
+    background: #f7f9fc; border: 1px solid #e3e8ef; border-radius: 8px;
+    padding: 6px 9px; font-size: 11px; color: #6b7280;
+  }
+  .stat b { display: block; font-size: 15px; color: #0f172a; font-variant-numeric: tabular-nums; }
+  .stat b span { font-size: 11px; font-weight: 500; color: #94a3b8; }
+
+  .bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: #eef1f5; margin-top: 8px; }
+  .bar i { display: block; height: 100%; transition: width .18s ease; }
+  .bar .sym { background: #10b981; }
+  .bar .anti { background: #8b5cf6; }
+  .legend { display: flex; justify-content: space-between; font-size: 11.5px; color: #666; margin-top: 7px; }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .legend b { color: #0f172a; font-variant-numeric: tabular-nums; }
+  .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; }
+
+  .hint { font-size: 11.5px; color: #8a94a3; line-height: 1.65; margin: 12px 0 0; }
+  .desc { font-size: 12.5px; color: #475569; margin-top: 8px; min-height: 18px; }
+
+  @media (max-width: 900px) {
+    body { padding: 14px; overflow-y: auto; height: auto; min-height: 100%; }
+    .wrap { flex-direction: column; }
+    .left { flex: 0 0 auto; }
+    #stageCard { min-height: 300px; height: 42vh; }
+    aside { width: auto; flex: 0 0 auto; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>耦合摆 · 小振动简正模</h1>
+    <div class="sub">两个单摆由弹簧相连。任意小振动都等于“同相模”与“反相模”两种简正模式的线性叠加。</div>
+  </header>
+
+  <div class="wrap">
+    <div class="left">
+      <div class="card" id="stageCard"><canvas id="stage"></canvas></div>
+      <div class="card" id="plotCard">
+        <div class="plot-head">
+          <span>θ₁ / θ₂ 时程<em id="span-note">时间轴 ≈ 3 拍 · 21 s</em></span>
+          <button id="envBtn" class="chip active" aria-pressed="true">包络线</button>
+        </div>
+        <canvas id="plot"></canvas>
+      </div>
+    </div>
+
+    <aside>
+      <h2>初始条件</h2>
+      <div class="row">
+        <div class="dis"><label for="th1">摆 1 初始角 θ₁</label><span class="val" id="v-th1">+12.0°</span></div>
+        <input type="range" id="th1" min="-30" max="30" step="0.5" value="12">
+      </div>
+      <div class="row">
+        <div class="dis"><label for="th2">摆 2 初始角 θ₂</label><span class="val" id="v-th2">0.0°</span></div>
+        <input type="range" id="th2" min="-30" max="30" step="0.5" value="0">
+      </div>
+
+      <h2>系统参数</h2>
+      <div class="row">
+        <div class="dis"><label for="kk">耦合强度 κ/m</label><span class="val" id="v-k">3.2 s⁻²</span></div>
+        <input type="range" id="kk" min="0" max="12" step="0.1" value="3.2">
+      </div>
+      <div class="row">
+        <div class="dis"><label for="len">摆长 L</label><span class="val" id="v-l">1.00 m</span></div>
+        <input type="range" id="len" min="0.6" max="1.5" step="0.02" value="1">
+      </div>
+
+      <div class="row" style="margin-top:14px">
+        <div class="dis"><label for="speed">播放速度</label><span class="val" id="v-speed">1.0×</span></div>
+        <input type="range" id="speed" min="0.1" max="5" step="0.1" value="1">
+      </div>
+
+      <div class="buttons">
+        <button id="toggle" class="primary">暂停</button>
+        <button id="reset">重置</button>
+      </div>
+
+      <h2>快捷模式</h2>
+      <div class="buttons" style="margin-bottom:8px">
+        <button data-preset="sym">同相模</button>
+        <button data-preset="anti">反相模</button>
+      </div>
+      <div class="buttons">
+        <button data-preset="beat">拍频</button>
+        <button data-preset="mix">混合</button>
+      </div>
+
+      <h2>简正频率</h2>
+      <div class="stats">
+        <div class="stat">ω₀ = √(g/L)<b id="w0">3.13 <span>rad/s</span></b></div>
+        <div class="stat">ωₐ 反相<b id="wa">4.03 <span>rad/s</span></b></div>
+        <div class="stat">ωₛ 同相<b id="ws">3.13 <span>rad/s</span></b></div>
+        <div class="stat">拍周期<b id="beat">7.03 <span>s</span></b></div>
+      </div>
+
+      <h2>模式能量分配</h2>
+      <div class="bar"><i class="sym" id="bar-sym" style="width:100%"></i><i class="anti" id="bar-anti" style="width:0%"></i></div>
+      <div class="legend">
+        <span><i class="sw" style="background:#10b981"></i>同相 <b id="pct-sym">100%</b></span>
+        <span><i class="sw" style="background:#8b5cf6"></i>反相 <b id="pct-anti">0%</b></span>
+      </div>
+      <div class="desc" id="desc">纯同相模：两摆同步同幅摆动</div>
+
+      <p class="hint">θ₁,₂ = A·cos ωₛt ± B·cos ωₐt：两种简正模叠加即为看到的运动，能量相当时出现“拍”。</p>
+    </aside>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+
+  const G = 9.81;
+  const SPAN_MIN = 12, SPAN_MAX = 90, SPAN_BEATS = 3;
+
+  const stage = document.getElementById('stage');
+  const sctx = stage.getContext('2d');
+  const plot = document.getElementById('plot');
+  const pctx = plot.getContext('2d');
+
+  const el = {
+    th1: document.getElementById('th1'),
+    th2: document.getElementById('th2'),
+    kk: document.getElementById('kk'),
+    len: document.getElementById('len'),
+    vTh1: document.getElementById('v-th1'),
+    vTh2: document.getElementById('v-th2'),
+    vK: document.getElementById('v-k'),
+    vL: document.getElementById('v-l'),
+    w0: document.getElementById('w0'),
+    ws: document.getElementById('ws'),
+    wa: document.getElementById('wa'),
+    beat: document.getElementById('beat'),
+    barSym: document.getElementById('bar-sym'),
+    barAnti: document.getElementById('bar-anti'),
+    pctSym: document.getElementById('pct-sym'),
+    pctAnti: document.getElementById('pct-anti'),
+    desc: document.getElementById('desc'),
+    toggle: document.getElementById('toggle'),
+    reset: document.getElementById('reset'),
+    speed: document.getElementById('speed'),
+    vSpeed: document.getElementById('v-speed'),
+    spanNote: document.getElementById('span-note'),
+    envBtn: document.getElementById('envBtn')
+  };
+
+  const C1 = '#2563eb';
+  const C2 = '#dc2626';
+  const CS = '#10b981';
+  const CA = '#8b5cf6';
+
+  const state = { th1: 12 * Math.PI / 180, th2: 0, k: 3.2, L: 1.0, t: 0, playing: true, speed: 1 };
+  const history = [];
+  let viewSpan = 21;
+  let showEnv = true;
+
+  let SW = 0, SH = 0, PW = 0, PH = 0;
+
+  // ---------- 物理：解析解 ----------
+  function omegas() {
+    const w0 = Math.sqrt(G / state.L);
+    return { w0: w0, ws: w0, wa: Math.sqrt(w0 * w0 + 2 * state.k) };
+  }
+  function amps() {
+    return {
+      A: (state.th1 + state.th2) / 2,   // 同相模振幅
+      B: (state.th1 - state.th2) / 2    // 反相模振幅
+    };
+  }
+  function angleAt(t) {
+    const w = omegas(), ab = amps();
+    const cs = Math.cos(w.ws * t), ca = Math.cos(w.wa * t);
+    const A = ab.A, B = ab.B;
+    return { a: A * cs + B * ca, b: A * cs - B * ca };
+  }
+
+  function restart() {
+    state.t = 0;
+    history.length = 0;
+    const p = angleAt(0);
+    history.push({ t: 0, a: p.a, b: p.b });
+    updateStats();
+  }
+
+  // ---------- 读数 ----------
+  function fmtDeg(rad) {
+    const d = rad * 180 / Math.PI;
+    return (d >= 0 ? '+' : '') + d.toFixed(1) + '°';
+  }
+
+  function updateStats() {
+    const w = omegas(), ab = amps(), A = ab.A, B = ab.B;
+
+    el.vTh1.textContent = fmtDeg(state.th1);
+    el.vTh2.textContent = fmtDeg(state.th2);
+    el.vK.textContent = state.k.toFixed(1) + ' s⁻²';
+    el.vL.textContent = state.L.toFixed(2) + ' m';
+
+    el.w0.innerHTML = w.w0.toFixed(2) + ' <span>rad/s</span>';
+    el.ws.innerHTML = w.ws.toFixed(2) + ' <span>rad/s</span>';
+    el.wa.innerHTML = w.wa.toFixed(2) + ' <span>rad/s</span>';
+
+    const dw = w.wa - w.ws;
+    const Tbeat = dw > 1e-4 ? 2 * Math.PI / dw : Infinity;
+    el.beat.innerHTML = isFinite(Tbeat)
+      ? Tbeat.toFixed(2) + ' <span>s</span>'
+      : '∞ <span>s</span>';
+
+    // 时间轴自动跟随拍周期：显示约 3 个拍，限制在 [12, 90] s
+    if (!isFinite(Tbeat)) {
+      viewSpan = SPAN_MAX;
+      el.spanNote.textContent = '时间轴 ' + SPAN_MAX + ' s（无耦合）';
+    } else {
+      viewSpan = Math.min(SPAN_MAX, Math.max(SPAN_MIN, SPAN_BEATS * Tbeat));
+      const beats = viewSpan / Tbeat;
+      el.spanNote.textContent = '时间轴 ' + viewSpan.toFixed(0) + ' s（'
+        + (beats < 1 ? '不足 1 拍' : '约 ' + Math.round(beats) + ' 拍') + '）';
+    }
+
+    const Es = w.ws * w.ws * A * A;
+    const Ea = w.wa * w.wa * B * B;
+    const tot = Es + Ea;
+    let ps = tot > 1e-12 ? Es / tot * 100 : 0;
+    ps = Math.round(ps);
+    const pa = 100 - ps;
+
+    el.barSym.style.width = ps + '%';
+    el.barAnti.style.width = pa + '%';
+    el.pctSym.textContent = ps + '%';
+    el.pctAnti.textContent = pa + '%';
+
+    if (tot < 1e-12) {
+      el.desc.textContent = '两摆静止：没有能量投入';
+    } else if (pa <= 1) {
+      el.desc.textContent = '纯同相模：两摆始终同幅、同向';
+    } else if (ps <= 1) {
+      el.desc.textContent = '纯反相模：两摆始终同幅、反向';
+    } else {
+      el.desc.textContent = '混合模式：两种简正模叠加，产生拍';
+    }
+  }
+
+  // ---------- 画布尺寸 ----------
+  function fit() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    const rs = stage.getBoundingClientRect();
+    SW = Math.max(1, rs.width);
+    SH = Math.max(1, rs.height);
+    stage.width = Math.round(SW * dpr);
+    stage.height = Math.round(SH * dpr);
+    sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const rp = plot.getBoundingClientRect();
+    PW = Math.max(1, rp.width);
+    PH = Math.max(1, rp.height);
+    plot.width = Math.round(PW * dpr);
+    plot.height = Math.round(PH * dpr);
+    pctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  // ---------- 绘制：主场景 ----------
+  function drawSpring(x1, y1, x2, y2) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const len = Math.hypot(dx, dy) || 1;
+    const ux = dx / len, uy = dy / len;
+    const nx = -uy, ny = ux;
+    const coils = 14;
+    const amp = Math.min(9, len * 0.055);
+
+    sctx.beginPath();
+    for (let i = 0; i <= coils; i++) {
+      const p = i / coils;
+      const d = p * len;
+      const off = (i === 0 || i === coils) ? 0 : (i % 2 ? -amp : amp);
+      const px = x1 + ux * d + nx * off;
+      const py = y1 + uy * d + ny * off;
+      if (i === 0) sctx.moveTo(px, py); else sctx.lineTo(px, py);
+    }
+    sctx.strokeStyle = '#94a3b8';
+    sctx.lineWidth = 2;
+    sctx.lineJoin = 'round';
+    sctx.lineCap = 'round';
+    sctx.stroke();
+  }
+
+  function drawBob(x, y, color, label) {
+    sctx.save();
+    sctx.shadowColor = 'rgba(15,23,42,0.28)';
+    sctx.shadowBlur = 14;
+    sctx.shadowOffsetY = 4;
+    sctx.beginPath();
+    sctx.fillStyle = color;
+    sctx.arc(x, y, 11, 0, Math.PI * 2);
+    sctx.fill();
+    sctx.restore();
+
+    const g = sctx.createRadialGradient(x - 3.5, y - 4.5, 0.5, x, y, 11);
+    g.addColorStop(0, 'rgba(255,255,255,0.85)');
+    g.addColorStop(0.45, 'rgba(255,255,255,0.12)');
+    g.addColorStop(1, 'rgba(0,0,0,0.18)');
+    sctx.beginPath();
+    sctx.fillStyle = g;
+    sctx.arc(x, y, 11, 0, Math.PI * 2);
+    sctx.fill();
+
+    sctx.fillStyle = color;
+    sctx.font = '600 12px ui-monospace, SFMono-Regular, Menlo, monospace';
+    sctx.textAlign = 'center';
+    sctx.textBaseline = 'top';
+    sctx.fillText(label, x, y + 17);
+  }
+
+  function drawAngleArc(px, py, theta, color, label) {
+    const r = 38;
+    sctx.save();
+    sctx.beginPath();
+    sctx.arc(px, py, r, Math.PI / 2, Math.PI / 2 - theta, theta > 0);
+    sctx.strokeStyle = color;
+    sctx.globalAlpha = 0.75;
+    sctx.lineWidth = 1.5;
+    sctx.stroke();
+
+    const mid = Math.PI / 2 - theta / 2;
+    const lx = px + (r + 15) * Math.cos(mid);
+    const ly = py + (r + 15) * Math.sin(mid);
+    sctx.globalAlpha = 1;
+    sctx.fillStyle = color;
+    sctx.font = '11px ui-monospace, SFMono-Regular, Menlo, monospace';
+    sctx.textAlign = 'center';
+    sctx.textBaseline = 'middle';
+    sctx.fillText(label, lx, ly);
+    sctx.restore();
+  }
+
+  function drawStage() {
+    const W = SW, H = SH;
+    sctx.clearRect(0, 0, W, H);
+    if (W < 60 || H < 60) return;
+
+    const ceilY = Math.max(62, H * 0.115);
+    const cx = W / 2;
+    const sep = Math.min(Math.max(W * 0.32, 170), 330);
+    const x1 = cx - sep / 2;
+    const x2 = cx + sep / 2;
+    const pxPerM = Math.min(Math.max((H - ceilY - 96) / 1.5, 90), 400);
+    const Lpx = Math.max(70, state.L * pxPerM);
+
+    // 天花板
+    const hx0 = Math.max(8, x1 - 110);
+    const hx1 = Math.min(W - 8, x2 + 110);
+    sctx.beginPath();
+    sctx.moveTo(hx0, ceilY);
+    sctx.lineTo(hx1, ceilY);
+    sctx.strokeStyle = '#64748b';
+    sctx.lineWidth = 2;
+    sctx.stroke();
+
+    sctx.beginPath();
+    sctx.strokeStyle = '#cbd5e1';
+    sctx.lineWidth = 1;
+    for (let x = hx0; x < hx1; x += 14) {
+      sctx.moveTo(x, ceilY);
+      sctx.lineTo(x + 9, ceilY - 11);
+    }
+    sctx.stroke();
+
+    const now = angleAt(state.t);
+    const a = now.a, b = now.b;
+    const b1x = x1 + Lpx * Math.sin(a), b1y = ceilY + Lpx * Math.cos(a);
+    const b2x = x2 + Lpx * Math.sin(b), b2y = ceilY + Lpx * Math.cos(b);
+
+    // 平衡位置虚线
+    sctx.save();
+    sctx.setLineDash([4, 7]);
+    sctx.strokeStyle = 'rgba(148,163,184,0.45)';
+    sctx.lineWidth = 1;
+    sctx.beginPath();
+    sctx.moveTo(x1, ceilY); sctx.lineTo(x1, ceilY + Lpx);
+    sctx.moveTo(x2, ceilY); sctx.lineTo(x2, ceilY + Lpx);
+    sctx.stroke();
+    sctx.restore();
+
+    // 弹簧
+    if (state.k > 0.04) drawSpring(b1x, b1y, b2x, b2y);
+
+    // 角度弧与摆杆
+    drawAngleArc(x1, ceilY, a, C1, (a * 180 / Math.PI).toFixed(1) + '°');
+    drawAngleArc(x2, ceilY, b, C2, (b * 180 / Math.PI).toFixed(1) + '°');
+
+    function rod(x, y, bx, by, color) {
+      const g = sctx.createLinearGradient(x, y, bx, by);
+      g.addColorStop(0, 'rgba(100,116,139,0.55)');
+      g.addColorStop(1, color);
+      sctx.beginPath();
+      sctx.moveTo(x, y);
+      sctx.lineTo(bx, by);
+      sctx.strokeStyle = g;
+      sctx.lineWidth = 2.5;
+      sctx.lineCap = 'round';
+      sctx.stroke();
+    }
+    rod(x1, ceilY, b1x, b1y, C1);
+    rod(x2, ceilY, b2x, b2y, C2);
+
+    // 支点
+    [x1, x2].forEach(function (x) {
+      sctx.beginPath();
+      sctx.fillStyle = '#334155';
+      sctx.arc(x, ceilY, 4.5, 0, Math.PI * 2);
+      sctx.fill();
+      sctx.beginPath();
+      sctx.fillStyle = '#f8fafc';
+      sctx.arc(x, ceilY, 1.6, 0, Math.PI * 2);
+      sctx.fill();
+    });
+
+    drawBob(b1x, b1y, C1, '1');
+    drawBob(b2x, b2y, C2, '2');
+
+    // 时间
+    sctx.fillStyle = '#94a3b8';
+    sctx.font = '12px ui-monospace, SFMono-Regular, Menlo, monospace';
+    sctx.textAlign = 'right';
+    sctx.textBaseline = 'top';
+    sctx.fillText('t = ' + state.t.toFixed(2) + ' s', W - 16, 14);
+  }
+
+  // ---------- 绘制：角度时程 ----------
+  function drawPlot() {
+    const W = PW, H = PH;
+    pctx.clearRect(0, 0, W, H);
+    if (W < 40 || H < 40) return;
+
+    const padL = 42, padR = 14, padT = 14, padB = 24;
+    const x0 = padL, xa = W - padR, y0 = padT, ya = H - padB;
+
+    // 曲线峰值恒为 max(|θ₁|, |θ₂|) = |A| + |B|
+    const maxAbs = Math.max(Math.abs(state.th1), Math.abs(state.th2), 0.18);
+    const ymax = maxAbs * 1.15;
+    const span = viewSpan;
+    const tNow = state.t;
+    const t0 = Math.max(0, tNow - span);
+
+    const yOf = function (v) {
+      return y0 + (ymax - v) / (2 * ymax) * (ya - y0);
+    };
+    const xOf = function (tt) {
+      return x0 + (tt - t0) / span * (xa - x0);
+    };
+
+    // 网格步长随时间窗自适应
+    const step = span <= 16 ? 2 : (span <= 36 ? 5 : 10);
+
+    pctx.save();
+    pctx.strokeStyle = 'rgba(148,163,184,0.25)';
+    pctx.lineWidth = 1;
+    pctx.font = '10.5px ui-monospace, SFMono-Regular, Menlo, monospace';
+    pctx.fillStyle = '#b6c0ce';
+    pctx.textAlign = 'center';
+    pctx.textBaseline = 'top';
+    const first = Math.ceil(t0 / step) * step;
+    for (let tt = first; tt <= t0 + span + 1e-6; tt += step) {
+      const x = xOf(tt);
+      if (x < x0 - 1 || x > xa + 1) continue;
+      pctx.beginPath();
+      pctx.moveTo(x, y0);
+      pctx.lineTo(x, ya);
+      pctx.stroke();
+      pctx.fillText(Math.round(tt) + 's', x, ya + 6);
+    }
+
+    // 零线
+    pctx.beginPath();
+    pctx.setLineDash([4, 5]);
+    pctx.strokeStyle = 'rgba(100,116,139,0.45)';
+    pctx.moveTo(x0, yOf(0));
+    pctx.lineTo(xa, yOf(0));
+    pctx.stroke();
+    pctx.restore();
+
+    // 包络线：±R(t)，R 为主振荡的解析振幅
+    if (showEnv && tNow - t0 > 1e-6) {
+      const w = omegas(), ab = amps();
+      const A = ab.A, B = ab.B;
+      const half = (w.wa - w.ws) / 2;
+      const N = 240;
+
+      function envelopeAt(t, sgn) {
+        const c = Math.cos(half * t), sn = Math.sin(half * t);
+        const p = A + sgn * B;
+        const q = A - sgn * B;
+        return Math.hypot(p * c, q * sn);
+      }
+
+      pctx.save();
+      pctx.setLineDash([5, 5]);
+      pctx.lineWidth = 1;
+      pctx.lineJoin = 'round';
+      [[C1, 1], [C2, -1]].forEach(function (cfg) {
+        pctx.strokeStyle = cfg[0];
+        pctx.globalAlpha = 0.38;
+        for (let s = -1; s <= 1; s += 2) {
+          pctx.beginPath();
+          for (let i = 0; i <= N; i++) {
+            const tt = t0 + (tNow - t0) * i / N;
+            const x = xOf(tt);
+            const y = yOf(s * envelopeAt(tt, cfg[1]));
+            if (i === 0) pctx.moveTo(x, y); else pctx.lineTo(x, y);
+          }
+          pctx.stroke();
+        }
+      });
+      pctx.restore();
+    }
+
+    // 角度曲线
+    function curve(key, color) {
+      pctx.save();
+      pctx.beginPath();
+      let started = false;
+      for (let i = 0; i < history.length; i++) {
+        const h = history[i];
+        if (h.t < t0 - 0.05) continue;
+        const x = xOf(h.t);
+        const y = yOf(h[key]);
+        if (!started) { pctx.moveTo(x, y); started = true; }
+        else pctx.lineTo(x, y);
+      }
+      pctx.strokeStyle = color;
+      pctx.lineWidth = span > 50 ? 1.5 : 2;
+      pctx.lineJoin = 'round';
+      pctx.lineCap = 'round';
+      pctx.stroke();
+      pctx.restore();
+
+      if (history.length) {
+        const h = history[history.length - 1];
+        pctx.beginPath();
+        pctx.fillStyle = color;
+        pctx.arc(xOf(h.t), yOf(h[key]), 3, 0, Math.PI * 2);
+        pctx.fill();
+      }
+    }
+    curve('a', C1);
+    curve('b', C2);
+
+    // 纵轴标注
+    pctx.font = '11px ui-monospace, SFMono-Regular, Menlo, monospace';
+    pctx.fillStyle = '#94a3b8';
+    pctx.textAlign = 'right';
+    pctx.textBaseline = 'middle';
+    const tick = Math.round(ymax * 180 / Math.PI);
+    pctx.fillText('+' + tick + '°', padL - 6, y0);
+    pctx.fillText('0°', padL - 6, yOf(0));
+    pctx.fillText('−' + tick + '°', padL - 6, ya);
+
+    // 图例
+    pctx.textAlign = 'right';
+    pctx.textBaseline = 'top';
+    pctx.fillStyle = C2;
+    pctx.fillText('θ₂', W - 12, y0);
+    pctx.fillStyle = C1;
+    pctx.fillText('θ₁', W - 40, y0);
+  }
+
+  function drawAll() {
+    drawStage();
+    drawPlot();
+  }
+
+  // ---------- 动画循环 ----------
+  let last = performance.now();
+
+  function loop(now) {
+    let dt = (now - last) / 1000;
+    last = now;
+    if (dt > 0.05) dt = 0.05;
+    if (dt < 0) dt = 0;
+
+    if (state.playing) {
+      state.t += dt * state.speed;
+      const p = angleAt(state.t);
+      history.push({ t: state.t, a: p.a, b: p.b });
+      const cutoff = state.t - viewSpan - 1;
+      while (history.length && history[0].t < cutoff) history.shift();
+    }
+
+    drawAll();
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- 交互 ----------
+  function readSliders() {
+    state.th1 = parseFloat(el.th1.value) * Math.PI / 180;
+    state.th2 = parseFloat(el.th2.value) * Math.PI / 180;
+    state.k = parseFloat(el.kk.value);
+    state.L = parseFloat(el.len.value);
+  }
+
+  ['th1', 'th2', 'kk', 'len'].forEach(function (id) {
+    el[id].addEventListener('input', function () {
+      readSliders();
+      restart();
+    });
+  });
+
+  el.speed.addEventListener('input', function () {
+    state.speed = parseFloat(el.speed.value);
+    el.vSpeed.textContent = state.speed.toFixed(1) + '×';
+    last = performance.now();
+  });
+
+  function setPreset(name) {
+    let a = 12, b = 0;
+    if (name === 'sym') { a = 12; b = 12; }
+    else if (name === 'anti') { a = 12; b = -12; }
+    else if (name === 'beat') { a = 12; b = 0; }
+    else if (name === 'mix') { a = 14; b = -5; }
+
+    el.th1.value = a;
+    el.th2.value = b;
+    readSliders();
+    state.playing = true;
+    el.toggle.textContent = '暂停';
+    restart();
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-preset]'), function (btn) {
+    btn.addEventListener('click', function () { setPreset(btn.dataset.preset); });
+  });
+
+  el.toggle.addEventListener('click', function () {
+    state.playing = !state.playing;
+    el.toggle.textContent = state.playing ? '暂停' : '继续';
+    last = performance.now();
+  });
+
+  el.reset.addEventListener('click', function () {
+    state.playing = true;
+    el.toggle.textContent = '暂停';
+    last = performance.now();
+    restart();
+  });
+
+  el.envBtn.addEventListener('click', function () {
+    showEnv = !showEnv;
+    el.envBtn.classList.toggle('active', showEnv);
+    el.envBtn.setAttribute('aria-pressed', String(showEnv));
+  });
+
+  window.addEventListener('keydown', function (e) {
+    if (e.code === 'Space' && e.target === document.body) {
+      e.preventDefault();
+      el.toggle.click();
+    }
+  });
+
+  window.addEventListener('resize', fit);
+
+  // ---------- 启动 ----------
+  readSliders();
+  fit();
+  restart();
+  requestAnimationFrame(loop);
+
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(function () { fit(); });
+    ro.observe(stage);
+    ro.observe(plot);
+  }
+})();
+</script>
+</body>
+</html>

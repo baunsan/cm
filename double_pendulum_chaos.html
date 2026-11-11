@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>双摆 · 初值敏感与混沌</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    margin: 0; padding: 18px 22px 22px;
+    background: #f5f6f8; color: #222;
+    display: flex; flex-direction: column;
+  }
+  header { max-width: 1240px; width: 100%; margin: 0 auto 12px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #666; font-size: 13px; line-height: 1.7; }
+  .sub code {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12.5px; color: #1e3a8a;
+    background: #eef2f9; border: 1px solid #dde5f1;
+    padding: 1px 6px; border-radius: 5px;
+  }
+  .wrap {
+    max-width: 1240px; width: 100%; margin: 0 auto;
+    flex: 1; min-height: 0; display: flex; gap: 18px;
+  }
+  .left { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+  .card {
+    background: #fff; border: 1px solid #d0d4da; border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.06);
+  }
+  #stageCard { flex: 1; min-height: 320px; overflow: hidden; position: relative; }
+  #stage {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%; display: block; touch-action: none;
+  }
+  #plotCard {
+    height: 216px; padding: 8px 12px 6px;
+    display: flex; flex-direction: column;
+  }
+  #plot { flex: 1; min-height: 0; width: 100%; display: block; }
+  .plot-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 2px 6px; font-size: 12px; color: #64748b; gap: 12px;
+  }
+  .plot-title b { color: #334155; font-weight: 600; }
+  .plot-title em { font-style: normal; color: #94a3b8; margin-left: 6px; }
+  .head-right { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .chip {
+    flex: 0 0 auto; padding: 4px 12px; font-size: 11.5px; border-radius: 999px;
+    border: 1px solid #cbd2dc; background: #fff; color: #64748b; line-height: 1.4;
+    cursor: pointer; transition: background .15s, border-color .15s;
+  }
+  .chip:hover { background: #f1f5f9; }
+  .chip.active { background: #eff6ff; border-color: #bfdbfe; color: #2563eb; }
+
+  aside {
+    width: 312px; flex: 0 0 312px;
+    background: #fff; border: 1px solid #d0d4da; border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.06);
+    padding: 16px 18px; overflow-y: auto;
+    scrollbar-width: thin; scrollbar-color: #d7dde7 transparent;
+  }
+  aside::-webkit-scrollbar { width: 6px; }
+  aside::-webkit-scrollbar-thumb { background: #d7dde7; border-radius: 3px; }
+  aside::-webkit-scrollbar-track { background: transparent; }
+  aside h2 { font-size: 14px; margin: 0 0 10px; letter-spacing: .3px; }
+  aside h2:not(:first-child) { margin-top: 16px; }
+  .row { margin-bottom: 11px; }
+  .dis { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; margin-bottom: 2px; }
+  .dis .val { font-variant-numeric: tabular-nums; color: #2563eb; font-weight: 600; font-size: 12.5px; }
+  input[type=range] { width: 100%; accent-color: #2563eb; }
+  .buttons { display: flex; gap: 8px; }
+  button {
+    flex: 1; padding: 7px 0; border: 1px solid #cbd2dc; border-radius: 8px;
+    background: #fff; font-size: 12.5px; cursor: pointer; color: #222;
+    transition: background .15s, border-color .15s;
+  }
+  button:hover { background: #eef2f7; }
+  button.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+  button.primary:hover { background: #1d4ed8; }
+  button:active { transform: translateY(1px); }
+
+  .fixed {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 7px 9px; border: 1px solid #e3e8ef; border-radius: 8px;
+    background: #f7f9fc; font-size: 12px; color: #64748b;
+  }
+  .fixed b { color: #2563eb; font-variant-numeric: tabular-nums; }
+
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat {
+    background: #f7f9fc; border: 1px solid #e3e8ef; border-radius: 8px;
+    padding: 7px 9px; font-size: 10.5px; color: #6b7280;
+  }
+  .stat b {
+    display: block; margin-top: 2px; font-size: 13px; color: #0f172a;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .stat b span { font-size: 10.5px; font-weight: 500; color: #94a3b8; }
+
+  .eq {
+    margin-top: 12px; padding: 9px 11px; border-radius: 8px;
+    background: #f7f9fc; border: 1px solid #e8ebf0;
+    font-size: 11px; color: #475569; line-height: 1.85;
+  }
+  .eq b { color: #334155; font-weight: 600; }
+  .eq code { font-family: ui-monospace, "SF Mono", Menlo, monospace; color: #1e3a8a; font-size: 11px; }
+  .desc { font-size: 12px; color: #475569; margin-top: 10px; min-height: 40px; line-height: 1.65; }
+  .hint { font-size: 11px; color: #94a3b8; line-height: 1.7; margin: 10px 0 0; }
+
+  @media (max-width: 900px) {
+    body { padding: 14px; overflow-y: auto; height: auto; min-height: 100%; }
+    .wrap { flex-direction: column; }
+    .left { flex: 0 0 auto; }
+    #stageCard { min-height: 300px; height: 44vh; }
+    #plotCard { height: 200px; }
+    aside { width: auto; flex: 0 0 auto; overflow: visible; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>双摆 · 初值敏感与混沌</h1>
+    <div class="sub">
+      若干个完全相同的双摆，仅初始角度相差 <code>δ</code>。大角度摆动时，微小差异随时间指数放大，
+      几条几乎重合的轨迹很快变得毫无关联。
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="left">
+      <div class="card" id="stageCard"><canvas id="stage"></canvas></div>
+      <div class="card" id="plotCard">
+        <div class="plot-head">
+          <span class="plot-title">
+            <b id="plotTitle">发散量 D(t)</b>
+            <em id="plotNote">各副本与参考摆的最大角距离 · 对数纵轴</em>
+          </span>
+          <div class="head-right">
+            <button class="chip active" data-plot="div">发散</button>
+            <button class="chip" data-plot="phase">相图</button>
+            <button class="chip" data-plot="energy">能量</button>
+          </div>
+        </div>
+        <canvas id="plot"></canvas>
+      </div>
+    </div>
+
+    <aside>
+      <h2>初始条件</h2>
+      <div class="row">
+        <div class="dis"><label for="th1">θ₁ 初始角</label><span class="val" id="v-th1">+120.0°</span></div>
+        <input type="range" id="th1" min="-180" max="180" step="0.5" value="120">
+      </div>
+      <div class="row">
+        <div class="dis"><label for="th2">θ₂ 初始角</label><span class="val" id="v-th2">−10.0°</span></div>
+        <input type="range" id="th2" min="-180" max="180" step="0.5" value="-10">
+      </div>
+
+      <h2>混沌设置</h2>
+      <div class="row">
+        <div class="dis"><label for="dd">相邻摆初始 θ₁ 差 δ</label><span class="val" id="v-d">1.0×10⁻⁵ rad</span></div>
+        <input type="range" id="dd" min="-8" max="-2" step="0.1" value="-5">
+      </div>
+      <div class="row">
+        <div class="dis"><label for="nn">双摆数 N（含参考摆）</label><span class="val" id="v-n">3（k=0…2）</span></div>
+        <input type="range" id="nn" min="2" max="6" step="1" value="3">
+      </div>
+      <div class="row">
+        <div class="dis"><label for="trail">拖尾时长</label><span class="val" id="v-trail">2.50 s</span></div>
+        <input type="range" id="trail" min="0" max="10" step="0.25" value="2.5">
+      </div>
+
+      <h2>播放</h2>
+      <div class="row">
+        <div class="dis"><label for="speed">速度</label><span class="val" id="v-speed">1.0×</span></div>
+        <input type="range" id="speed" min="0.1" max="3" step="0.1" value="1">
+      </div>
+      <div class="buttons">
+        <button id="toggle" class="primary">暂停</button>
+        <button id="reset">重置</button>
+      </div>
+
+      <h2>实时读数</h2>
+      <div class="stats">
+        <div class="stat">时间 t<b id="s-t">0.0 <span>s</span></b></div>
+        <div class="stat">发散量 D<b id="s-d">—</b></div>
+        <div class="stat">λ 估计<b id="s-lambda">—</b></div>
+        <div class="stat">能量漂移 |ΔE/E|<b id="s-energy">—</b></div>
+      </div>
+      <div class="desc" id="desc">各副本几乎重合。</div>
+
+      <h2>快捷预设</h2>
+      <div class="buttons" style="margin-bottom:8px">
+        <button data-preset="small">5° 近周期</button>
+        <button data-preset="critical">60° 弱分离</button>
+        <button data-preset="chaos">120° 强混沌</button>
+      </div>
+
+      <h2>系统参数</h2>
+      <div class="row">
+        <div class="dis"><label for="l1">上摆长 L₁</label><span class="val" id="v-l1">0.90 m</span></div>
+        <input type="range" id="l1" min="0.4" max="1.2" step="0.02" value="0.9">
+      </div>
+      <div class="row">
+        <div class="dis"><label for="l2">下摆长 L₂</label><span class="val" id="v-l2">0.90 m</span></div>
+        <input type="range" id="l2" min="0.4" max="1.2" step="0.02" value="0.9">
+      </div>
+      <div class="row">
+        <div class="dis"><label for="mm">质量比 m₂ / m₁</label><span class="val" id="v-mm">1.00</span></div>
+        <input type="range" id="mm" min="0.2" max="3" step="0.05" value="1">
+      </div>
+      <div class="fixed"><span>重力加速度 g</span><b>9.81 m/s²</b></div>
+
+      <div class="eq">
+        <b>状态</b> <code>(θ₁, ω₁, θ₂, ω₂)</code><br>
+        <b>积分</b> RK4，固定步长 <code>h = 0.5 ms</code><br>
+        <b>初值</b> <code>θ₁⁽ᵏ⁾ = θ₁ + kδ</code>（k=0 参考摆），其余相同
+      </div>
+
+      <p class="hint">
+        所有双摆用同一组方程、同一个 RK4 与固定步长同步推进，看到的分离来自动力学本身。
+        前几秒重合、随后分开正是要观察的现象；拖动主画布上的摆球也可以设定初始角度。
+      </p>
+    </aside>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+
+  const RAD = Math.PI / 180;
+  const H = 0.0005;
+  const SAMPLE = 0.02;
+  const WINDOW = 40;
+  const LOG_MIN = -8;
+  const LOG_MAX = 1;
+  const COLORS = ['#2563eb', '#dc2626', '#10b981', '#8b5cf6', '#f59e0b', '#0f766e'];
+  const MONO = 'ui-monospace, SFMono-Regular, Menlo, monospace';
+
+  const stage = document.getElementById('stage');
+  const sctx = stage.getContext('2d');
+  const plot = document.getElementById('plot');
+  const pctx = plot.getContext('2d');
+
+  const el = {
+    th1: document.getElementById('th1'),
+    th2: document.getElementById('th2'),
+    dd: document.getElementById('dd'),
+    nn: document.getElementById('nn'),
+    trail: document.getElementById('trail'),
+    l1: document.getElementById('l1'),
+    l2: document.getElementById('l2'),
+    mm: document.getElementById('mm'),
+    speed: document.getElementById('speed'),
+    vTh1: document.getElementById('v-th1'),
+    vTh2: document.getElementById('v-th2'),
+    vD: document.getElementById('v-d'),
+    vN: document.getElementById('v-n'),
+    vTrail: document.getElementById('v-trail'),
+    vL1: document.getElementById('v-l1'),
+    vL2: document.getElementById('v-l2'),
+    vMM: document.getElementById('v-mm'),
+    vSpeed: document.getElementById('v-speed'),
+    toggle: document.getElementById('toggle'),
+    reset: document.getElementById('reset'),
+    sT: document.getElementById('s-t'),
+    sD: document.getElementById('s-d'),
+    sLambda: document.getElementById('s-lambda'),
+    sEnergy: document.getElementById('s-energy'),
+    desc: document.getElementById('desc'),
+    plotTitle: document.getElementById('plotTitle'),
+    plotNote: document.getElementById('plotNote')
+  };
+
+  const state = {
+    th1: 120 * RAD, th2: -10 * RAD,
+    L1: 0.9, L2: 0.9, m1: 1, m2: 1, g: 9.81,
+    delta: 1e-5, count: 3, trailSpan: 2.5, speed: 1,
+    t: 0, playing: true, plot: 'div'
+  };
+
+  let copies = [];
+  let history = [];
+  let E0 = 0;
+  let initialD = 1e-5;
+  let lambda = NaN;
+  let lambdaTimer = 0;
+  let nextSampleT = SAMPLE;
+  let acc = 0;
+  let lastUI = 0;
+  let SW = 0, SH = 0, PW = 0, PH = 0;
+  let dragging = null;
+  let dragResume = false;
+
+  const Y = [0, 0, 0, 0];
+  const K1 = [0, 0, 0, 0];
+  const K2 = [0, 0, 0, 0];
+  const K3 = [0, 0, 0, 0];
+  const K4 = [0, 0, 0, 0];
+  const YT = [0, 0, 0, 0];
+
+  const SUP = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+
+  function sup(n) {
+    return String(n).split('').map(function (ch) { return SUP[ch] || ch; }).join('');
+  }
+
+  function expText(x, digits) {
+    if (!isFinite(x)) return '—';
+    if (x === 0) return '0';
+    const sign = x < 0 ? '−' : '';
+    let a = Math.abs(x);
+    let e = Math.floor(Math.log10(a));
+    let m = a / Math.pow(10, e);
+    if (m >= 9.9995) { m /= 10; e += 1; }
+    return sign + m.toFixed(digits == null ? 1 : digits) + '×10' + sup(e);
+  }
+
+  function fmtDeg(rad) {
+    const d = rad / RAD;
+    return (d >= 0 ? '+' : '−') + Math.abs(d).toFixed(1) + '°';
+  }
+
+  function fmtRad(x) {
+    if (!isFinite(x)) return '—';
+    if (x >= 0.01) return x.toFixed(3);
+    return expText(x, 1);
+  }
+
+  function wrapAngle(a) {
+    a = (a + Math.PI) % (2 * Math.PI);
+    if (a < 0) a += 2 * Math.PI;
+    return a - Math.PI;
+  }
+
+  function wrapDiff(a, b) {
+    let d = (a - b) % (2 * Math.PI);
+    if (d > Math.PI) d -= 2 * Math.PI;
+    if (d < -Math.PI) d += 2 * Math.PI;
+    return d;
+  }
+
+  function deriv(y, out) {
+    const m1 = state.m1, m2 = state.m2, L1 = state.L1, L2 = state.L2, g = state.g;
+    const th1 = y[0], w1 = y[1], th2 = y[2], w2 = y[3];
+    const d = th1 - th2;
+    const sd = Math.sin(d);
+    const cd = Math.cos(d);
+    const den1 = L1 * (2 * m1 + m2 - m2 * Math.cos(2 * d));
+    const den2 = L2 * (2 * m1 + m2 - m2 * Math.cos(2 * d));
+    const a1 = (
+      -g * (2 * m1 + m2) * Math.sin(th1)
+      - m2 * g * Math.sin(th1 - 2 * th2)
+      - 2 * sd * m2 * (w2 * w2 * L2 + w1 * w1 * L1 * cd)
+    ) / den1;
+    const a2 = (
+      2 * sd * (w1 * w1 * L1 * (m1 + m2) + g * (m1 + m2) * Math.cos(th1) + w2 * w2 * L2 * m2 * cd)
+    ) / den2;
+    out[0] = w1;
+    out[1] = a1;
+    out[2] = w2;
+    out[3] = a2;
+  }
+
+  function rk4(c, h) {
+    Y[0] = c.th1; Y[1] = c.w1; Y[2] = c.th2; Y[3] = c.w2;
+
+    deriv(Y, K1);
+    for (let i = 0; i < 4; i++) YT[i] = Y[i] + 0.5 * h * K1[i];
+    deriv(YT, K2);
+    for (let i = 0; i < 4; i++) YT[i] = Y[i] + 0.5 * h * K2[i];
+    deriv(YT, K3);
+    for (let i = 0; i < 4; i++) YT[i] = Y[i] + h * K3[i];
+    deriv(YT, K4);
+
+    c.th1 = Y[0] + h / 6 * (K1[0] + 2 * K2[0] + 2 * K3[0] + K4[0]);
+    c.w1 = Y[1] + h / 6 * (K1[1] + 2 * K2[1] + 2 * K3[1] + K4[1]);
+    c.th2 = Y[2] + h / 6 * (K1[2] + 2 * K2[2] + 2 * K3[2] + K4[2]);
+    c.w2 = Y[3] + h / 6 * (K1[3] + 2 * K2[3] + 2 * K3[3] + K4[3]);
+  }
+
+  function energy(c) {
+    const L1 = state.L1, L2 = state.L2, m1 = state.m1, m2 = state.m2, g = state.g;
+    const T1 = 0.5 * m1 * L1 * L1 * c.w1 * c.w1;
+    const T2 = 0.5 * m2 * (L1 * L1 * c.w1 * c.w1 + L2 * L2 * c.w2 * c.w2
+      + 2 * L1 * L2 * c.w1 * c.w2 * Math.cos(c.th1 - c.th2));
+    const V = -(m1 + m2) * g * L1 * Math.cos(c.th1) - m2 * g * L2 * Math.cos(c.th2);
+    return T1 + T2 + V;
+  }
+
+  function spread() {
+    if (copies.length < 2) return 0;
+    const a = copies[0];
+    let max = 0;
+    for (let i = 1; i < copies.length; i++) {
+      const b = copies[i];
+      const d1 = wrapDiff(b.th1, a.th1);
+      const d2 = wrapDiff(b.th2, a.th2);
+      const d = Math.hypot(d1, d2);
+      if (d > max) max = d;
+    }
+    return max;
+  }
+
+  function tip(c) {
+    return {
+      x: state.L1 * Math.sin(c.th1) + state.L2 * Math.sin(c.th2),
+      y: state.L1 * Math.cos(c.th1) + state.L2 * Math.cos(c.th2)
+    };
+  }
+
+  function makeCopies() {
+    copies = [];
+    for (let i = 0; i < state.count; i++) {
+      copies.push({
+        th1: state.th1 + i * state.delta,
+        w1: 0,
+        th2: state.th2,
+        w2: 0,
+        color: COLORS[i % COLORS.length],
+        trail: []
+      });
+    }
+  }
+
+  function trimTrails() {
+    const cut = state.t - state.trailSpan;
+    for (let i = 0; i < copies.length; i++) {
+      const tr = copies[i].trail;
+      while (tr.length > 1 && tr[0].t < cut) tr.shift();
+    }
+  }
+
+  function trimHistory() {
+    const cut = state.t - 60;
+    let k = 0;
+    while (k < history.length && history[k].t < cut) k++;
+    if (k > 0) history.splice(0, k);
+  }
+
+  function pushSample() {
+    const d = spread();
+    const e = copies.length ? energy(copies[0]) : 0;
+    const ph = copies.map(function (c) { return [wrapAngle(c.th2), c.w2]; });
+    history.push({ t: state.t, d: d, e: e, ph: ph });
+
+    for (let i = 0; i < copies.length; i++) {
+      const p = tip(copies[i]);
+      copies[i].trail.push({ t: state.t, x: p.x, y: p.y });
+    }
+    trimTrails();
+    trimHistory();
+
+    if (state.t - lambdaTimer > 0.3 && d < 0.35) {
+      lambdaTimer = state.t;
+      const est = estimateLambda();
+      if (isFinite(est)) lambda = est;
+    }
+  }
+
+  function estimateLambda() {
+    if (copies.length < 2 || state.t < 1.5) return NaN;
+    const lo = Math.max(initialD * 6, 1e-8);
+    const hi = 0.4;
+    let n = 0, st = 0, sy = 0, stt = 0, sty = 0;
+    let ymin = Infinity, ymax = -Infinity, tmin = Infinity, tmax = -Infinity;
+
+    for (let i = 0; i < history.length; i++) {
+      const s = history[i];
+      if (s.t < 0.3 || s.d < lo || s.d > hi) continue;
+      const y = Math.log(s.d);
+      n++; st += s.t; sy += y; stt += s.t * s.t; sty += s.t * y;
+      if (y < ymin) ymin = y;
+      if (y > ymax) ymax = y;
+      if (s.t < tmin) tmin = s.t;
+      if (s.t > tmax) tmax = s.t;
+    }
+
+    if (n < 14 || ymax - ymin < 1.2 || tmax - tmin < 0.8) return NaN;
+    const den = n * stt - st * st;
+    if (Math.abs(den) < 1e-10) return NaN;
+    const slope = (n * sty - st * sy) / den;
+    return slope > 0.02 ? slope : NaN;
+  }
+
+  function stepAll(h) {
+    for (let i = 0; i < copies.length; i++) rk4(copies[i], h);
+    state.t += h;
+    while (state.t >= nextSampleT) {
+      pushSample();
+      nextSampleT += SAMPLE;
+    }
+  }
+
+  function resetSim() {
+    state.t = 0;
+    acc = 0;
+    lambda = NaN;
+    lambdaTimer = 0;
+    nextSampleT = SAMPLE;
+    history = [];
+    makeCopies();
+    E0 = copies.length ? energy(copies[0]) : 0;
+    initialD = Math.max(spread(), 1e-14);
+    pushSample();
+    updateStats();
+  }
+
+  function readConfig() {
+    state.th1 = parseFloat(el.th1.value) * RAD;
+    state.th2 = parseFloat(el.th2.value) * RAD;
+    state.delta = Math.pow(10, parseFloat(el.dd.value));
+    state.count = Math.round(parseFloat(el.nn.value));
+    state.trailSpan = parseFloat(el.trail.value);
+    state.L1 = parseFloat(el.l1.value);
+    state.L2 = parseFloat(el.l2.value);
+    state.m2 = parseFloat(el.mm.value);
+    state.speed = parseFloat(el.speed.value);
+  }
+
+  function syncLabels() {
+    el.vTh1.textContent = fmtDeg(state.th1);
+    el.vTh2.textContent = fmtDeg(state.th2);
+    el.vD.textContent = expText(state.delta, 1) + ' rad';
+    el.vN.textContent = state.count + '（k=0…' + (state.count - 1) + '）';
+    el.vTrail.textContent = state.trailSpan.toFixed(2) + ' s';
+    el.vL1.textContent = state.L1.toFixed(2) + ' m';
+    el.vL2.textContent = state.L2.toFixed(2) + ' m';
+    el.vMM.textContent = state.m2.toFixed(2);
+    el.vSpeed.textContent = state.speed.toFixed(1) + '×';
+  }
+
+  function updateStats() {
+    const D = copies.length ? spread() : 0;
+    const eNow = copies.length ? energy(copies[0]) : 0;
+    const drift = Math.abs((eNow - E0) / Math.max(Math.abs(E0), 1e-6));
+
+    el.sT.innerHTML = state.t.toFixed(1) + ' <span>s</span>';
+    el.sD.innerHTML = fmtRad(D) + ' <span>rad</span>';
+    el.sLambda.innerHTML = isFinite(lambda)
+      ? lambda.toFixed(2) + ' <span>s⁻¹</span>'
+      : '—';
+    el.sEnergy.innerHTML = expText(drift, 1);
+
+    let text;
+    if (copies.length < 2) {
+      text = '至少需要两个副本才能比较。';
+    } else if (!isFinite(lambda)) {
+      if (D < initialD * 3) {
+        text = '各副本几乎重合：当前初始条件尚未出现可见的指数分离。';
+      } else {
+        text = '轨迹已开始分开，λ 需要更长的线性增长段才能稳定估计。';
+      }
+    } else if (D < initialD * 10) {
+      text = '指数分离初期：λ ≈ ' + lambda.toFixed(2) + ' s⁻¹，角差约每 '
+        + (1 / lambda).toFixed(2) + ' s 放大 e 倍。';
+    } else if (D < 0.5) {
+      const tMacro = Math.log(0.1 / initialD) / lambda;
+      text = '正在指数分离：λ ≈ ' + lambda.toFixed(2) + ' s⁻¹，按此速率预计 t ≈ '
+        + tMacro.toFixed(0) + ' s 越过 0.1 rad。';
+    } else {
+      text = '已宏观分离：微小的 δ 被放大到 O(1)，几条轨道此后基本无关。';
+    }
+    el.desc.textContent = text;
+  }
+
+  function fit() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    const rs = stage.getBoundingClientRect();
+    SW = Math.max(1, rs.width);
+    SH = Math.max(1, rs.height);
+    stage.width = Math.round(SW * dpr);
+    stage.height = Math.round(SH * dpr);
+    sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const rp = plot.getBoundingClientRect();
+    PW = Math.max(1, rp.width);
+    PH = Math.max(1, rp.height);
+    plot.width = Math.round(PW * dpr);
+    plot.height = Math.round(PH * dpr);
+    pctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function geom() {
+    const total = state.L1 + state.L2;
+    const s = Math.max(16, Math.min((SW * 0.46 - 24) / total, (SH * 0.48 - 18) / total));
+    return {
+      px: SW / 2,
+      py: SH * 0.47,
+      s: s,
+      br: Math.max(5, Math.min(11, s * 0.075))
+    };
+  }
+
+  function bobPix(c, g) {
+    const x1 = g.px + state.L1 * Math.sin(c.th1) * g.s;
+    const y1 = g.py + state.L1 * Math.cos(c.th1) * g.s;
+    const x2 = x1 + state.L2 * Math.sin(c.th2) * g.s;
+    const y2 = y1 + state.L2 * Math.cos(c.th2) * g.s;
+    return { x1: x1, y1: y1, x2: x2, y2: y2 };
+  }
+
+  function drawTrail(c, g) {
+    const tr = c.trail;
+    if (state.trailSpan < 0.08 || tr.length < 2) return;
+    const n = tr.length;
+    const chunks = 6;
+    sctx.save();
+    sctx.lineCap = 'round';
+    sctx.lineJoin = 'round';
+    for (let k = 0; k < chunks; k++) {
+      const i0 = Math.floor(k * (n - 1) / chunks);
+      const i1 = Math.floor((k + 1) * (n - 1) / chunks);
+      if (i1 <= i0) continue;
+      sctx.beginPath();
+      for (let i = i0; i <= i1; i++) {
+        const x = g.px + tr[i].x * g.s;
+        const y = g.py + tr[i].y * g.s;
+        if (i === i0) sctx.moveTo(x, y); else sctx.lineTo(x, y);
+      }
+      sctx.strokeStyle = c.color;
+      sctx.globalAlpha = (0.10 + 0.11 * k) * (state.count > 3 ? 0.78 : 1);
+      sctx.lineWidth = 1.2 + 0.28 * k;
+      sctx.stroke();
+    }
+    sctx.restore();
+  }
+
+  function drawPendulum(c, g, isRef) {
+    const p = bobPix(c, g);
+    sctx.save();
+    sctx.lineCap = 'round';
+    sctx.strokeStyle = c.color;
+    sctx.globalAlpha = isRef ? 0.95 : 0.55;
+    sctx.lineWidth = isRef ? 2.8 : 1.8;
+    sctx.beginPath();
+    sctx.moveTo(g.px, g.py);
+    sctx.lineTo(p.x1, p.y1);
+    sctx.stroke();
+    sctx.beginPath();
+    sctx.moveTo(p.x1, p.y1);
+    sctx.lineTo(p.x2, p.y2);
+    sctx.stroke();
+    sctx.restore();
+
+    sctx.beginPath();
+    sctx.fillStyle = c.color;
+    sctx.arc(p.x1, p.y1, Math.max(3, g.br * 0.45), 0, Math.PI * 2);
+    sctx.fill();
+    sctx.lineWidth = 1.2;
+    sctx.strokeStyle = '#ffffff';
+    sctx.stroke();
+
+    const r = isRef ? g.br : g.br * 0.85;
+    sctx.save();
+    if (isRef) {
+      sctx.shadowColor = 'rgba(15,23,42,0.28)';
+      sctx.shadowBlur = 12;
+      sctx.shadowOffsetY = 3;
+    }
+    sctx.beginPath();
+    sctx.fillStyle = c.color;
+    sctx.arc(p.x2, p.y2, r, 0, Math.PI * 2);
+    sctx.fill();
+    sctx.restore();
+
+    if (isRef) {
+      const grad = sctx.createRadialGradient(p.x2 - r * 0.3, p.y2 - r * 0.35, 0.5, p.x2, p.y2, r);
+      grad.addColorStop(0, 'rgba(255,255,255,0.85)');
+      grad.addColorStop(0.45, 'rgba(255,255,255,0.12)');
+      grad.addColorStop(1, 'rgba(0,0,0,0.18)');
+      sctx.beginPath();
+      sctx.fillStyle = grad;
+      sctx.arc(p.x2, p.y2, r, 0, Math.PI * 2);
+      sctx.fill();
+    } else {
+      sctx.beginPath();
+      sctx.strokeStyle = 'rgba(255,255,255,0.9)';
+      sctx.lineWidth = 1.1;
+      sctx.arc(p.x2, p.y2, r, 0, Math.PI * 2);
+      sctx.stroke();
+    }
+  }
+
+  function drawThetaArc(g) {
+    const th = wrapAngle(copies[0].th1);
+    const r = Math.max(20, Math.min(46, state.L1 * g.s * 0.42));
+    const a0 = Math.PI / 2;
+    const a1 = Math.PI / 2 - th;
+
+    sctx.save();
+    sctx.strokeStyle = '#94a3b8';
+    sctx.lineWidth = 1.4;
+    sctx.beginPath();
+    sctx.arc(g.px, g.py, r, a0, a1, th > 0);
+    sctx.stroke();
+
+    const mid = (a0 + a1) / 2;
+    const tx = g.px + Math.cos(mid) * (r + 16);
+    const ty = g.py + Math.sin(mid) * (r + 16);
+    sctx.fillStyle = '#64748b';
+    sctx.font = '12px ' + MONO;
+    sctx.textAlign = 'center';
+    sctx.textBaseline = 'middle';
+    sctx.fillText('θ₁', tx, ty);
+    sctx.restore();
+  }
+
+  function drawOverlay() {
+    const right = SW - 78;
+    sctx.save();
+    sctx.textAlign = 'right';
+    sctx.textBaseline = 'top';
+    sctx.fillStyle = '#475569';
+    sctx.font = '12px ' + MONO;
+    sctx.fillText('N = ' + state.count + ' · δ = ' + expText(state.delta, 1) + ' rad', right, 14);
+    sctx.fillStyle = '#94a3b8';
+    sctx.font = '11px ' + MONO;
+    sctx.fillText('θ₁⁽ᵏ⁾ = θ₁ + kδ，k=0 为参考摆', right, 33);
+
+    if (copies.length > 1) {
+      sctx.font = '10.5px ' + MONO;
+      sctx.textAlign = 'left';
+      sctx.textBaseline = 'top';
+      for (let i = 0; i < copies.length; i++) {
+        const y = 16 + i * 17;
+        sctx.beginPath();
+        sctx.fillStyle = copies[i].color;
+        sctx.arc(SW - 62, y + 5, 4, 0, Math.PI * 2);
+        sctx.fill();
+        sctx.fillStyle = '#64748b';
+        sctx.fillText('k=' + i, SW - 52, y);
+      }
+    }
+
+    sctx.textAlign = 'left';
+    sctx.textBaseline = 'bottom';
+    sctx.fillStyle = '#a3adbb';
+    sctx.font = '11px ' + MONO;
+    sctx.fillText('拖拽摆球可设定初始角度', 16, SH - 12);
+    sctx.restore();
+  }
+
+  function drawStage() {
+    if (!copies.length) return;
+    const g = geom();
+    sctx.clearRect(0, 0, SW, SH);
+
+    sctx.save();
+    sctx.fillStyle = '#edf1f6';
+    for (let x = 0.5; x < SW; x += 32) {
+      for (let y = 0.5; y < SH; y += 32) sctx.fillRect(x, y, 1, 1);
+    }
+    sctx.restore();
+
+    sctx.save();
+    sctx.beginPath();
+    sctx.strokeStyle = '#e6ebf2';
+    sctx.setLineDash([4, 6]);
+    sctx.arc(g.px, g.py, (state.L1 + state.L2) * g.s, 0, Math.PI * 2);
+    sctx.stroke();
+    sctx.restore();
+
+    sctx.save();
+    sctx.setLineDash([3, 5]);
+    sctx.strokeStyle = '#cbd5e1';
+    sctx.lineWidth = 1;
+    sctx.beginPath();
+    sctx.moveTo(g.px, g.py);
+    sctx.lineTo(g.px, g.py + Math.min(70, (state.L1 + state.L2) * g.s));
+    sctx.stroke();
+    sctx.restore();
+
+    for (let i = copies.length - 1; i >= 0; i--) drawTrail(copies[i], g);
+    for (let i = copies.length - 1; i >= 0; i--) drawPendulum(copies[i], g, i === 0);
+
+    sctx.save();
+    sctx.strokeStyle = '#94a3b8';
+    sctx.lineWidth = 3;
+    sctx.lineCap = 'round';
+    sctx.beginPath();
+    sctx.moveTo(g.px - 13, g.py);
+    sctx.lineTo(g.px + 13, g.py);
+    sctx.stroke();
+    sctx.beginPath();
+    sctx.fillStyle = '#334155';
+    sctx.arc(g.px, g.py, 4.5, 0, Math.PI * 2);
+    sctx.fill();
+    sctx.beginPath();
+    sctx.strokeStyle = '#94a3b8';
+    sctx.lineWidth = 1.5;
+    sctx.arc(g.px, g.py, 8, 0, Math.PI * 2);
+    sctx.stroke();
+    sctx.restore();
+
+    drawThetaArc(g);
+    drawOverlay();
+  }
+
+  function timeWindow() {
+    const xMax = Math.max(WINDOW, state.t);
+    return { xMin: xMax - WINDOW, xMax: xMax };
+  }
+
+  function drawDivergence() {
+    const padL = 54, padR = 16, padT = 14, padB = 28;
+    const x0 = padL, x1 = PW - padR, y0 = padT, y1 = PH - padB;
+    const plotW = Math.max(1, x1 - x0);
+    const plotH = Math.max(1, y1 - y0);
+    const tw = timeWindow();
+    const xOf = function (t) { return x0 + (t - tw.xMin) / (tw.xMax - tw.xMin) * plotW; };
+    const yOf = function (d) {
+      const lg = Math.log10(Math.max(d, Math.pow(10, LOG_MIN)));
+      return y1 - (lg - LOG_MIN) / (LOG_MAX - LOG_MIN) * plotH;
+    };
+
+    pctx.save();
+    pctx.font = '10px ' + MONO;
+    pctx.textAlign = 'right';
+    pctx.textBaseline = 'middle';
+    for (let e = LOG_MAX; e >= LOG_MIN; e--) {
+      const y = yOf(Math.pow(10, e));
+      pctx.strokeStyle = e === 0 ? '#dbe3ee' : '#eef2f7';
+      pctx.lineWidth = 1;
+      pctx.beginPath();
+      pctx.moveTo(x0, y);
+      pctx.lineTo(x1, y);
+      pctx.stroke();
+      pctx.fillStyle = '#94a3b8';
+      pctx.fillText('10' + sup(e), x0 - 7, y);
+    }
+
+    pctx.textAlign = 'center';
+    pctx.textBaseline = 'top';
+    const tStart = Math.ceil(tw.xMin / 10) * 10;
+    for (let t = tStart; t <= tw.xMax + 1e-9; t += 10) {
+      const x = xOf(t);
+      pctx.strokeStyle = '#f1f5f9';
+      pctx.lineWidth = 1;
+      pctx.beginPath();
+      pctx.moveTo(x, y0);
+      pctx.lineTo(x, y1);
+      pctx.stroke();
+      pctx.fillStyle = '#94a3b8';
+      pctx.fillText(t.toFixed(0), x, y1 + 5);
+    }
+
+    const yMacro = yOf(0.1);
+    pctx.setLineDash([4, 4]);
+    pctx.strokeStyle = '#f59e0b';
+    pctx.lineWidth = 1;
+    pctx.beginPath();
+    pctx.moveTo(x0, yMacro);
+    pctx.lineTo(x1, yMacro);
+    pctx.stroke();
+    pctx.setLineDash([]);
+    pctx.fillStyle = '#b45309';
+    pctx.textAlign = 'left';
+    pctx.textBaseline = 'bottom';
+    pctx.fillText('宏观分离 0.1 rad', x0 + 6, yMacro - 2);
+
+    pctx.save();
+    pctx.beginPath();
+    pctx.rect(x0, y0, plotW, plotH);
+    pctx.clip();
+    pctx.beginPath();
+    let started = false;
+    for (let i = 0; i < history.length; i++) {
+      const s = history[i];
+      if (s.t < tw.xMin - 0.1) continue;
+      const x = xOf(s.t), y = yOf(s.d);
+      if (!started) { pctx.moveTo(x, y); started = true; }
+      else pctx.lineTo(x, y);
+    }
+    pctx.strokeStyle = '#2563eb';
+    pctx.lineWidth = 2;
+    pctx.lineJoin = 'round';
+    pctx.lineCap = 'round';
+    pctx.stroke();
+    pctx.restore();
+
+    const last = history[history.length - 1];
+    if (last && last.t >= tw.xMin) {
+      pctx.beginPath();
+      pctx.fillStyle = '#2563eb';
+      pctx.arc(xOf(last.t), yOf(last.d), 3.5, 0, Math.PI * 2);
+      pctx.fill();
+      pctx.strokeStyle = '#ffffff';
+      pctx.lineWidth = 1.5;
+      pctx.stroke();
+    }
+
+    pctx.font = '11.5px ' + MONO;
+    pctx.textAlign = 'right';
+    pctx.textBaseline = 'top';
+    pctx.fillStyle = isFinite(lambda) ? '#2563eb' : '#94a3b8';
+    pctx.fillText(isFinite(lambda) ? ('λ ≈ ' + lambda.toFixed(2) + ' s⁻¹') : 'λ 估计中…', x1, y0 + 2);
+
+    pctx.font = '10px ' + MONO;
+    pctx.textAlign = 'left';
+    pctx.fillStyle = '#94a3b8';
+    pctx.fillText('t / s →', x0 + 6, y0 + 2);
+    pctx.restore();
+  }
+
+  function drawPhase() {
+    const padL = 46, padR = 18, padT = 16, padB = 30;
+    const x0 = padL, x1 = PW - padR, y0 = padT, y1 = PH - padB;
+    const plotW = Math.max(1, x1 - x0);
+    const plotH = Math.max(1, y1 - y0);
+    const cut = state.t - 25;
+
+    let maxW = 4;
+    for (let i = 0; i < history.length; i++) {
+      const s = history[i];
+      if (s.t < cut) continue;
+      for (let k = 0; k < s.ph.length; k++) {
+        const w = Math.abs(s.ph[k][1]);
+        if (w > maxW) maxW = w;
+      }
+    }
+    maxW *= 1.15;
+
+    const xOf = function (th) { return x0 + (th + Math.PI) / (2 * Math.PI) * plotW; };
+    const yOf = function (w) { return y1 - (w + maxW) / (2 * maxW) * plotH; };
+
+    pctx.save();
+    pctx.strokeStyle = '#eef2f7';
+    pctx.lineWidth = 1;
+    [-Math.PI, 0, Math.PI].forEach(function (th) {
+      const x = xOf(th);
+      pctx.beginPath();
+      pctx.moveTo(x, y0);
+      pctx.lineTo(x, y1);
+      pctx.stroke();
+    });
+    [-maxW, 0, maxW].forEach(function (w) {
+      const y = yOf(w);
+      pctx.strokeStyle = w === 0 ? '#dbe3ee' : '#eef2f7';
+      pctx.beginPath();
+      pctx.moveTo(x0, y);
+      pctx.lineTo(x1, y);
+      pctx.stroke();
+    });
+
+    pctx.font = '10px ' + MONO;
+    pctx.fillStyle = '#94a3b8';
+    pctx.textAlign = 'center';
+    pctx.textBaseline = 'top';
+    pctx.fillText('−π', x0, y1 + 5);
+    pctx.fillText('0', xOf(0), y1 + 5);
+    pctx.fillText('π', x1, y1 + 5);
+    pctx.textAlign = 'right';
+    pctx.fillText('θ₂', x1, y1 + 18);
+
+    pctx.textAlign = 'right';
+    pctx.textBaseline = 'middle';
+    pctx.fillText('+' + maxW.toFixed(0), x0 - 6, yOf(maxW));
+    pctx.fillText('0', x0 - 6, yOf(0));
+    pctx.fillText('−' + maxW.toFixed(0), x0 - 6, yOf(-maxW));
+    pctx.textAlign = 'left';
+    pctx.textBaseline = 'top';
+    pctx.fillText('ω₂ / rad·s⁻¹', x0 + 4, y0 + 2);
+
+    pctx.save();
+    pctx.beginPath();
+    pctx.rect(x0, y0, plotW, plotH);
+    pctx.clip();
+    for (let i = 0; i < copies.length; i++) {
+      pctx.beginPath();
+      let started = false;
+      let prev = null;
+      for (let j = 0; j < history.length; j++) {
+        const s = history[j];
+        if (s.t < cut) continue;
+        const th = s.ph[i][0], w = s.ph[i][1];
+        const x = xOf(th), y = yOf(w);
+        if (!started || (prev !== null && Math.abs(th - prev) > Math.PI * 0.8)) {
+          pctx.moveTo(x, y);
+          started = true;
+        } else {
+          pctx.lineTo(x, y);
+        }
+        prev = th;
+      }
+      pctx.strokeStyle = copies[i].color;
+      pctx.globalAlpha = 0.8;
+      pctx.lineWidth = 1.4;
+      pctx.stroke();
+
+      const last = history[history.length - 1];
+      if (last) {
+        pctx.beginPath();
+        pctx.fillStyle = copies[i].color;
+        pctx.arc(xOf(last.ph[i][0]), yOf(last.ph[i][1]), 3, 0, Math.PI * 2);
+        pctx.fill();
+      }
+    }
+    pctx.restore();
+    pctx.restore();
+  }
+
+  function drawEnergy() {
+    const padL = 70, padR = 16, padT = 16, padB = 28;
+    const x0 = padL, x1 = PW - padR, y0 = padT, y1 = PH - padB;
+    const plotW = Math.max(1, x1 - x0);
+    const plotH = Math.max(1, y1 - y0);
+    const tw = timeWindow();
+
+    let maxAbs = 1e-8;
+    for (let i = 0; i < history.length; i++) {
+      const s = history[i];
+      if (s.t < tw.xMin) continue;
+      const drift = Math.abs((s.e - E0) / Math.max(Math.abs(E0), 1e-6));
+      if (drift > maxAbs) maxAbs = drift;
+    }
+    maxAbs *= 1.2;
+
+    const xOf = function (t) { return x0 + (t - tw.xMin) / (tw.xMax - tw.xMin) * plotW; };
+    const yOf = function (v) { return y0 + (maxAbs - v) / (2 * maxAbs) * plotH; };
+
+    pctx.save();
+    pctx.strokeStyle = '#eef2f7';
+    pctx.lineWidth = 1;
+    for (let k = -2; k <= 2; k++) {
+      const y = yOf(maxAbs * k / 2);
+      pctx.strokeStyle = k === 0 ? '#dbe3ee' : '#eef2f7';
+      pctx.beginPath();
+      pctx.moveTo(x0, y);
+      pctx.lineTo(x1, y);
+      pctx.stroke();
+    }
+    pctx.font = '10px ' + MONO;
+    pctx.fillStyle = '#94a3b8';
+    pctx.textAlign = 'right';
+    pctx.textBaseline = 'middle';
+    pctx.fillText('+' + expText(maxAbs, 1), x0 - 6, yOf(maxAbs));
+    pctx.fillText('0', x0 - 6, yOf(0));
+    pctx.fillText('−' + expText(maxAbs, 1), x0 - 6, yOf(-maxAbs));
+
+    const tStart = Math.ceil(tw.xMin / 10) * 10;
+    pctx.textAlign = 'center';
+    pctx.textBaseline = 'top';
+    for (let t = tStart; t <= tw.xMax + 1e-9; t += 10) {
+      const x = xOf(t);
+      pctx.strokeStyle = '#f1f5f9';
+      pctx.beginPath();
+      pctx.moveTo(x, y0);
+      pctx.lineTo(x, y1);
+      pctx.stroke();
+      pctx.fillStyle = '#94a3b8';
+      pctx.fillText(t.toFixed(0), x, y1 + 5);
+    }
+
+    pctx.save();
+    pctx.beginPath();
+    pctx.rect(x0, y0, plotW, plotH);
+    pctx.clip();
+    pctx.beginPath();
+    let started = false;
+    for (let i = 0; i < history.length; i++) {
+      const s = history[i];
+      if (s.t < tw.xMin - 0.1) continue;
+      const drift = (s.e - E0) / Math.max(Math.abs(E0), 1e-6);
+      const x = xOf(s.t), y = yOf(drift);
+      if (!started) { pctx.moveTo(x, y); started = true; }
+      else pctx.lineTo(x, y);
+    }
+    pctx.strokeStyle = '#dc2626';
+    pctx.lineWidth = 1.6;
+    pctx.lineJoin = 'round';
+    pctx.stroke();
+    pctx.restore();
+
+    pctx.font = '10px ' + MONO;
+    pctx.fillStyle = '#94a3b8';
+    pctx.textAlign = 'left';
+    pctx.textBaseline = 'top';
+    pctx.fillText('t / s →', x0 + 6, y0 + 2);
+    pctx.restore();
+  }
+
+  function drawPlot() {
+    pctx.clearRect(0, 0, PW, PH);
+    if (state.plot === 'div') drawDivergence();
+    else if (state.plot === 'phase') drawPhase();
+    else drawEnergy();
+  }
+
+  function updatePlotHead() {
+    const meta = {
+      div: ['发散量 D(t)', '各副本与参考摆的最大角距离 · 对数纵轴'],
+      phase: ['相图 θ₂–ω₂', '不同副本的轨迹逐渐分离'],
+      energy: ['能量相对漂移', 'RK4 固定步长 h = 0.5 ms']
+    };
+    const m = meta[state.plot];
+    el.plotTitle.textContent = m[0];
+    el.plotNote.textContent = m[1];
+  }
+
+  function setPlaying(playing) {
+    state.playing = playing;
+    el.toggle.textContent = playing ? '暂停' : '继续';
+  }
+
+  function setPreset(name) {
+    if (name === 'small') {
+      el.th1.value = 5;
+      el.th2.value = 0;
+    } else if (name === 'critical') {
+      el.th1.value = 60;
+      el.th2.value = -8;
+    } else if (name === 'chaos') {
+      el.th1.value = 120;
+      el.th2.value = -10;
+    }
+    readConfig();
+    syncLabels();
+    resetSim();
+    setPlaying(true);
+  }
+
+  function applyDrag(mx, my) {
+    const g = geom();
+    if (dragging === 1) {
+      state.th1 = Math.atan2(mx - g.px, my - g.py);
+      el.th1.value = (state.th1 / RAD).toFixed(2);
+    } else if (dragging === 2) {
+      const p = bobPix(copies[0], g);
+      state.th2 = Math.atan2(mx - p.x1, my - p.y1);
+      el.th2.value = (state.th2 / RAD).toFixed(2);
+    }
+    syncLabels();
+    resetSim();
+  }
+
+  let last = performance.now();
+
+  function loop(now) {
+    let dt = (now - last) / 1000;
+    last = now;
+    dt = Math.max(0, Math.min(dt, 0.05));
+
+    if (state.playing && dt > 0 && copies.length) {
+      acc += dt * state.speed;
+      let guard = 0;
+      while (acc >= H && guard < 20000) {
+        stepAll(H);
+        acc -= H;
+        guard++;
+      }
+    }
+
+    drawStage();
+    drawPlot();
+
+    if (now - lastUI > 100) {
+      lastUI = now;
+      updateStats();
+    }
+    requestAnimationFrame(loop);
+  }
+
+  ['th1', 'th2', 'dd', 'nn', 'l1', 'l2', 'mm'].forEach(function (id) {
+    el[id].addEventListener('input', function () {
+      readConfig();
+      syncLabels();
+      resetSim();
+    });
+  });
+
+  el.trail.addEventListener('input', function () {
+    readConfig();
+    syncLabels();
+    trimTrails();
+  });
+
+  el.speed.addEventListener('input', function () {
+    readConfig();
+    syncLabels();
+  });
+
+  el.toggle.addEventListener('click', function () {
+    setPlaying(!state.playing);
+    last = performance.now();
+  });
+
+  el.reset.addEventListener('click', function () {
+    readConfig();
+    syncLabels();
+    resetSim();
+    setPlaying(true);
+    last = performance.now();
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-preset]'), function (btn) {
+    btn.addEventListener('click', function () {
+      setPreset(btn.dataset.preset);
+      last = performance.now();
+    });
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-plot]'), function (btn) {
+    btn.addEventListener('click', function () {
+      state.plot = btn.dataset.plot;
+      Array.prototype.forEach.call(document.querySelectorAll('[data-plot]'), function (b) {
+        b.classList.toggle('active', b === btn);
+      });
+      updatePlotHead();
+    });
+  });
+
+  stage.addEventListener('pointerdown', function (e) {
+    if (!copies.length) return;
+    const r = stage.getBoundingClientRect();
+    const mx = e.clientX - r.left;
+    const my = e.clientY - r.top;
+    const g = geom();
+    const p = bobPix(copies[0], g);
+    const d1 = Math.hypot(mx - p.x1, my - p.y1);
+    const d2 = Math.hypot(mx - p.x2, my - p.y2);
+    if (Math.min(d1, d2) > g.br + 16) return;
+    dragging = d1 <= d2 ? 1 : 2;
+    dragResume = state.playing;
+    setPlaying(false);
+    try { stage.setPointerCapture(e.pointerId); } catch (err) {}
+    applyDrag(mx, my);
+    e.preventDefault();
+  });
+
+  stage.addEventListener('pointermove', function (e) {
+    if (dragging == null) return;
+    const r = stage.getBoundingClientRect();
+    applyDrag(e.clientX - r.left, e.clientY - r.top);
+  });
+
+  function endDrag() {
+    if (dragging == null) return;
+    dragging = null;
+    if (dragResume) setPlaying(true);
+    last = performance.now();
+  }
+
+  stage.addEventListener('pointerup', endDrag);
+  stage.addEventListener('pointercancel', endDrag);
+
+  window.addEventListener('keydown', function (e) {
+    if (e.code === 'Space' && e.target === document.body) {
+      e.preventDefault();
+      setPlaying(!state.playing);
+      last = performance.now();
+    }
+  });
+
+  window.addEventListener('resize', fit);
+
+  readConfig();
+  syncLabels();
+  updatePlotHead();
+  fit();
+  resetSim();
+  requestAnimationFrame(loop);
+
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(function () { fit(); });
+    ro.observe(stage);
+    ro.observe(plot);
+  }
+})();
+</script>
+</body>
+</html>

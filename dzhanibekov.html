@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>中间轴定理 · 自由刚体转动</title>
+<style>
+  :root{
+    --bg:#eef2f7;
+    --panel:#f8fafc;
+    --card:#ffffff;
+    --line:#d9e2ec;
+    --text:#1e293b;
+    --muted:#64748b;
+    --red:#e5484d;
+    --green:#1f9d55;
+    --blue:#2f6fed;
+    --amber:#d97706;
+    --cyan:#0891b2;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:"Segoe UI",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    overflow:hidden;
+  }
+  #app{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 336px;
+    height:100vh;
+    height:100dvh;
+  }
+  #left{
+    display:grid;
+    grid-template-rows:minmax(0,1.65fr) minmax(0,1fr);
+    gap:10px;
+    padding:10px;
+    min-width:0;
+    min-height:0;
+  }
+  .view{
+    position:relative;
+    overflow:hidden;
+    border:1px solid var(--line);
+    border-radius:12px;
+    background:var(--card);
+    min-width:0;
+    min-height:0;
+  }
+  .view canvas{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    display:block;
+  }
+  .hud{
+    position:absolute;
+    left:14px;
+    top:11px;
+    pointer-events:none;
+  }
+  .hud-title{
+    font-size:14px;
+    font-weight:600;
+    letter-spacing:.02em;
+  }
+  .hud-sub{
+    font-size:11px;
+    color:var(--muted);
+    margin-top:2px;
+  }
+  .legend{
+    position:absolute;
+    left:14px;
+    right:14px;
+    bottom:11px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:5px 14px;
+    font-size:11px;
+    color:var(--muted);
+    pointer-events:none;
+  }
+  .legend .item{display:flex;align-items:center;gap:6px}
+  .legend .sw{
+    width:14px;
+    height:3px;
+    border-radius:2px;
+    background:var(--c);
+    flex:none;
+  }
+  .legend .sw.dash{
+    height:2px;
+    background:repeating-linear-gradient(90deg,var(--c) 0 4px,transparent 4px 7px);
+  }
+  .chart-hud{
+    position:absolute;
+    left:12px;
+    right:12px;
+    top:8px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    font-size:11px;
+    color:var(--muted);
+    pointer-events:none;
+  }
+  .chart-hud .title{
+    font-size:11.5px;
+    color:#5b6b7f;
+    letter-spacing:.03em;
+    margin-right:4px;
+  }
+  .chart-hud .chip{display:flex;align-items:center;gap:5px}
+  .chart-hud .chip i{
+    display:block;
+    width:12px;
+    height:2.5px;
+    border-radius:2px;
+    background:var(--c);
+  }
+  #panel{
+    background:var(--panel);
+    border-left:1px solid var(--line);
+    padding:16px 16px 26px;
+    overflow-y:auto;
+    min-height:0;
+  }
+  #panel h1{
+    font-size:15px;
+    margin:0 0 6px;
+    letter-spacing:.02em;
+    font-weight:600;
+  }
+  .hint{
+    font-size:11.5px;
+    line-height:1.6;
+    color:var(--muted);
+    margin:0 0 15px;
+  }
+  .hint b{color:#334155;font-weight:600}
+  section{
+    border-top:1px solid var(--line);
+    padding:13px 0 3px;
+  }
+  section h2{
+    font-size:10.5px;
+    color:var(--muted);
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    margin:0 0 11px;
+    font-weight:600;
+  }
+  .ctl{margin-bottom:11px}
+  .ctl-head{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    font-size:12px;
+    margin-bottom:4px;
+  }
+  .ctl-head .dot{
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:var(--c);
+    flex:none;
+  }
+  .ctl-head output{
+    margin-left:auto;
+    font-variant-numeric:tabular-nums;
+    color:var(--text);
+    font-size:11.5px;
+    background:#f1f5f9;
+    border:1px solid var(--line);
+    border-radius:5px;
+    padding:1px 6px;
+    min-width:56px;
+    text-align:right;
+  }
+  input[type=range]{
+    -webkit-appearance:none;
+    appearance:none;
+    width:100%;
+    height:20px;
+    background:transparent;
+    cursor:pointer;
+    margin:0;
+    display:block;
+  }
+  input[type=range]::-webkit-slider-runnable-track{
+    height:4px;
+    border-radius:99px;
+    background:#d5dee8;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:14px;
+    height:14px;
+    border-radius:50%;
+    margin-top:-5px;
+    background:var(--c,#8fb3d9);
+    border:2px solid #ffffff;
+    box-shadow:0 0 0 1px rgba(30, 45, 60, 0.28);
+  }
+  input[type=range]::-moz-range-track{
+    height:4px;
+    border-radius:99px;
+    background:#d5dee8;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:12px;
+    height:12px;
+    border:2px solid #ffffff;
+    border-radius:50%;
+    background:var(--c,#8fb3d9);
+  }
+  .presets{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:6px;
+    margin-top:3px;
+  }
+  .presets button:first-child{grid-column:1 / -1}
+  button{
+    font:inherit;
+    font-size:11.5px;
+    color:var(--text);
+    background:#ffffff;
+    border:1px solid #cfdae5;
+    border-radius:7px;
+    padding:7px 8px;
+    cursor:pointer;
+    transition:background .15s,border-color .15s;
+  }
+  button:hover{background:#f1f5f9;border-color:#b6c6d6}
+  button:active{background:#e8eef5}
+  .row2{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:6px;
+    margin-top:7px;
+  }
+  .readout{
+    display:flex;
+    justify-content:space-between;
+    font-size:12px;
+    color:var(--muted);
+    padding:3px 0;
+    font-variant-numeric:tabular-nums;
+  }
+  .readout b{color:var(--text);font-weight:500}
+  .wvec{
+    display:flex;
+    gap:8px;
+    margin-top:9px;
+    font-size:12px;
+    font-variant-numeric:tabular-nums;
+  }
+  .wvec span{
+    flex:1;
+    text-align:center;
+    background:#f1f5f9;
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:5px 0;
+  }
+  .note{
+    font-size:10.5px;
+    line-height:1.7;
+    color:#64748b;
+    border-left:2px solid #cfdae5;
+    padding-left:10px;
+    margin-top:12px;
+  }
+  .tiny{
+    font-size:10.5px;
+    color:#64748b;
+    margin:8px 0 0;
+    line-height:1.6;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="left">
+    <div class="view">
+      <canvas id="scene"></canvas>
+      <div class="hud">
+        <div class="hud-title">自由刚体 · 中间轴定理</div>
+        <div class="hud-sub">无外力矩 · 欧拉方程 RK4 · 按空格暂停</div>
+      </div>
+      <div class="legend">
+        <span class="item"><i class="sw" style="--c:var(--red)"></i>x 轴 · 大惯量</span>
+        <span class="item"><i class="sw" style="--c:var(--green)"></i>y 轴 · 中间轴（不稳）</span>
+        <span class="item"><i class="sw" style="--c:var(--blue)"></i>z 轴 · 小惯量</span>
+        <span class="item"><i class="sw" style="--c:var(--amber)"></i>ω 角速度</span>
+        <span class="item"><i class="sw dash" style="--c:var(--cyan)"></i>L 角动量</span>
+      </div>
+    </div>
+    <div class="view">
+      <canvas id="chart"></canvas>
+      <div class="chart-hud">
+        <span class="title">角速度分量 ω(t)</span>
+        <span class="chip"><i style="--c:var(--red)"></i>ωx</span>
+        <span class="chip"><i style="--c:var(--green)"></i>ωy</span>
+        <span class="chip"><i style="--c:var(--blue)"></i>ωz</span>
+      </div>
+    </div>
+  </div>
+
+  <aside id="panel">
+    <h1>中间轴定理</h1>
+    <p class="hint">无外力矩自由刚体绕<b>中间惯量轴</b>旋转时平衡不稳定：微小扰动会逐渐放大，角速度方向保持片刻后突然翻转，并周期性重复（Dzhanibekov 效应）。</p>
+
+    <section>
+      <h2>初始角速度 ω₀ (rad/s)</h2>
+      <div class="ctl">
+        <div class="ctl-head"><span class="dot" style="--c:var(--red)"></span><span>ω<sub>x</sub> · x 轴 · 大惯量</span><output id="out-wx">+0.15</output></div>
+        <input id="in-wx" type="range" min="-5" max="5" step="0.05" value="0.15" style="--c:var(--red)">
+      </div>
+      <div class="ctl">
+        <div class="ctl-head"><span class="dot" style="--c:var(--green)"></span><span>ω<sub>y</sub> · y 轴 · 中间轴</span><output id="out-wy">+4.00</output></div>
+        <input id="in-wy" type="range" min="-5" max="5" step="0.05" value="4" style="--c:var(--green)">
+      </div>
+      <div class="ctl">
+        <div class="ctl-head"><span class="dot" style="--c:var(--blue)"></span><span>ω<sub>z</sub> · z 轴 · 小惯量</span><output id="out-wz">+0.10</output></div>
+        <input id="in-wz" type="range" min="-5" max="5" step="0.05" value="0.10" style="--c:var(--blue)">
+      </div>
+      <div class="presets">
+        <button data-preset="inter">近中间轴（会翻转）</button>
+        <button data-preset="max">绕最大惯量轴</button>
+        <button data-preset="min">绕最小惯量轴</button>
+      </div>
+      <p class="tiny">拖动滑块会立即以新的初始角速度重新开始。</p>
+    </section>
+
+    <section>
+      <h2>播放控制</h2>
+      <div class="ctl">
+        <div class="ctl-head"><span>播放速度</span><output id="out-speed">1.00×</output></div>
+        <input id="in-speed" type="range" min="0.1" max="3" step="0.05" value="1" style="--c:#7c97b3">
+      </div>
+      <div class="row2">
+        <button id="btn-pause">暂停</button>
+        <button id="btn-reset">重置</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>实时状态</h2>
+      <div class="readout"><span>仿真时间</span><b id="r-time">0.00 s</b></div>
+      <div class="readout"><span>|ω|</span><b id="r-mag">0.000</b></div>
+      <div class="readout"><span>能量 E</span><b id="r-energy">0.000</b></div>
+      <div class="wvec">
+        <span id="r-wx" style="color:var(--red)">+0.15</span>
+        <span id="r-wy" style="color:var(--green)">+4.00</span>
+        <span id="r-wz" style="color:var(--blue)">+0.10</span>
+      </div>
+      <div class="note">长方体 1×2×3，惯量 (I<sub>x</sub>, I<sub>y</sub>, I<sub>z</sub>) ∝ (13, 10, 5)。y 轴（绿色）是中间惯量轴，因此最不稳定。</div>
+    </section>
+  </aside>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const signed = (v, d = 2) => {
+    if (Math.abs(v) < Math.pow(10, -d) / 2) return (0).toFixed(d);
+    return (v > 0 ? '+' : '') + v.toFixed(d);
+  };
+  const formatTick = (v) => {
+    const a = Math.abs(v);
+    if (a < 1e-9) return '0';
+    if (a >= 10) return v.toFixed(0);
+    if (a >= 1) return Math.abs(v - Math.round(v)) < 1e-9 ? v.toFixed(0) : v.toFixed(1);
+    return v.toFixed(2);
+  };
+  const niceCeil = (v) => {
+    if (!(v > 0)) return 1;
+    const p = Math.pow(10, Math.floor(Math.log10(v)));
+    const n = v / p;
+    const m = n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10;
+    return m * p;
+  };
+
+  const DIM = [1, 2, 3];
+  const MASS = 1;
+  const INERTIA = [
+    MASS * (DIM[1] * DIM[1] + DIM[2] * DIM[2]) / 12,
+    MASS * (DIM[0] * DIM[0] + DIM[2] * DIM[2]) / 12,
+    MASS * (DIM[0] * DIM[0] + DIM[1] * DIM[1]) / 12,
+  ];
+  const HALF = DIM.map((v) => v / 2);
+  const RADIUS = Math.hypot(HALF[0], HALF[1], HALF[2]);
+
+  const WINDOW = 12;
+  const H = 0.002;
+  const SAMPLE_DT = 0.01;
+  const CAM_D = 6;
+  const CAM_YAW = -0.55;
+  const CAM_PITCH = 0.32;
+  const LIGHT = (() => {
+    const l = [-0.5, 0.7, 0.8];
+    const m = Math.hypot(l[0], l[1], l[2]);
+    return [l[0] / m, l[1] / m, l[2] / m];
+  })();
+
+  const BOX_VERTS = [];
+  for (let ix = 0; ix < 2; ix++) {
+    for (let iy = 0; iy < 2; iy++) {
+      for (let iz = 0; iz < 2; iz++) {
+        BOX_VERTS.push([
+          (ix ? 1 : -1) * HALF[0],
+          (iy ? 1 : -1) * HALF[1],
+          (iz ? 1 : -1) * HALF[2],
+        ]);
+      }
+    }
+  }
+  const BOX_FACES = [
+    { v: [4, 5, 7, 6], n: [1, 0, 0] },
+    { v: [0, 2, 3, 1], n: [-1, 0, 0] },
+    { v: [2, 3, 7, 6], n: [0, 1, 0] },
+    { v: [0, 4, 5, 1], n: [0, -1, 0] },
+    { v: [1, 3, 7, 5], n: [0, 0, 1] },
+    { v: [0, 2, 6, 4], n: [0, 0, -1] },
+  ];
+  const FACE_COLORS = [
+    [239, 83, 80],
+    [255, 167, 38],
+    [102, 187, 106],
+    [38, 166, 154],
+    [66, 165, 245],
+    [171, 71, 188],
+  ];
+  const SERIES = [
+    { k: 0, color: '#e5484d' },
+    { k: 1, color: '#1f9d55' },
+    { k: 2, color: '#2f6fed' },
+  ];
+
+  function qMul(a, b) {
+    const [aw, ax, ay, az] = a;
+    const [bw, bx, by, bz] = b;
+    return [
+      aw * bw - ax * bx - ay * by - az * bz,
+      aw * bx + ax * bw + ay * bz - az * by,
+      aw * by - ax * bz + ay * bw + az * bx,
+      aw * bz + ax * by - ay * bx + az * bw,
+    ];
+  }
+  function qNorm(q) {
+    const l = Math.hypot(q[0], q[1], q[2], q[3]) || 1;
+    return [q[0] / l, q[1] / l, q[2] / l, q[3] / l];
+  }
+  function rotateVec(q, v) {
+    const [w, x, y, z] = q;
+    const tx = 2 * (y * v[2] - z * v[1]);
+    const ty = 2 * (z * v[0] - x * v[2]);
+    const tz = 2 * (x * v[1] - y * v[0]);
+    return [
+      v[0] + w * tx + (y * tz - z * ty),
+      v[1] + w * ty + (z * tx - x * tz),
+      v[2] + w * tz + (x * ty - y * tx),
+    ];
+  }
+  function integrateQuat(q, w, h) {
+    const m = Math.hypot(w[0], w[1], w[2]);
+    if (m < 1e-9) return q;
+    const half = m * h / 2;
+    const s = Math.sin(half) / m;
+    const dq = [Math.cos(half), w[0] * s, w[1] * s, w[2] * s];
+    return qNorm(qMul(q, dq));
+  }
+
+  function omegaDot(w) {
+    return [
+      (INERTIA[1] - INERTIA[2]) * w[1] * w[2] / INERTIA[0],
+      (INERTIA[2] - INERTIA[0]) * w[2] * w[0] / INERTIA[1],
+      (INERTIA[0] - INERTIA[1]) * w[0] * w[1] / INERTIA[2],
+    ];
+  }
+  function rk4Step(w, h) {
+    const k1 = omegaDot(w);
+    const k2 = omegaDot([
+      w[0] + k1[0] * h / 2,
+      w[1] + k1[1] * h / 2,
+      w[2] + k1[2] * h / 2,
+    ]);
+    const k3 = omegaDot([
+      w[0] + k2[0] * h / 2,
+      w[1] + k2[1] * h / 2,
+      w[2] + k2[2] * h / 2,
+    ]);
+    const k4 = omegaDot([
+      w[0] + k3[0] * h,
+      w[1] + k3[1] * h,
+      w[2] + k3[2] * h,
+    ]);
+    return [
+      w[0] + h / 6 * (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0]),
+      w[1] + h / 6 * (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1]),
+      w[2] + h / 6 * (k1[2] + 2 * k2[2] + 2 * k3[2] + k4[2]),
+    ];
+  }
+
+  function makeView(id) {
+    const canvas = document.getElementById(id);
+    const ctx = canvas.getContext('2d');
+    const view = { canvas, ctx, w: 0, h: 0, dpr: 1 };
+    const fit = () => {
+      const parent = canvas.parentElement;
+      const w = parent.clientWidth;
+      const h = parent.clientHeight;
+      if (!w || !h) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      if (w === view.w && h === view.h && dpr === view.dpr) return;
+      view.w = w;
+      view.h = h;
+      view.dpr = dpr;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+    };
+    if (window.ResizeObserver) {
+      new ResizeObserver(fit).observe(canvas.parentElement);
+    }
+    window.addEventListener('resize', fit);
+    fit();
+    return view;
+  }
+
+  const scene = makeView('scene');
+  const chart = makeView('chart');
+  const el = (id) => document.getElementById(id);
+  const comps = [
+    { input: el('in-wx'), output: el('out-wx'), readout: el('r-wx') },
+    { input: el('in-wy'), output: el('out-wy'), readout: el('r-wy') },
+    { input: el('in-wz'), output: el('out-wz'), readout: el('r-wz') },
+  ];
+
+  let initial = [0.15, 4, 0.10];
+  let omega = initial.slice();
+  let quat = [1, 0, 0, 0];
+  let simTime = 0;
+  let samples = [{ t: 0, w: initial.slice() }];
+  let sampleClock = 0;
+  let simAcc = 0;
+  let running = true;
+  let speed = 1;
+  let chartYMax = 5;
+  let lastT = performance.now();
+  let readoutClock = 0;
+
+  function readInputs() {
+    return comps.map((c) => Number(c.input.value));
+  }
+
+  function resetSim() {
+    initial = readInputs();
+    omega = initial.slice();
+    quat = [1, 0, 0, 0];
+    simTime = 0;
+    sampleClock = 0;
+    simAcc = 0;
+    samples = [{ t: 0, w: initial.slice() }];
+    let m = 0.25;
+    for (const v of initial) m = Math.max(m, Math.abs(v));
+    chartYMax = niceCeil(m * 1.15);
+    updateReadouts();
+  }
+
+  function stepPhysics() {
+    const next = rk4Step(omega, H);
+    const mid = [
+      (omega[0] + next[0]) / 2,
+      (omega[1] + next[1]) / 2,
+      (omega[2] + next[2]) / 2,
+    ];
+    quat = integrateQuat(quat, mid, H);
+    omega = next;
+    simTime += H;
+    sampleClock += H;
+    while (sampleClock >= SAMPLE_DT - 1e-12) {
+      sampleClock -= SAMPLE_DT;
+      samples.push({ t: simTime, w: [omega[0], omega[1], omega[2]] });
+    }
+    const cut = simTime - WINDOW - 3;
+    while (samples.length && samples[0].t < cut) samples.shift();
+  }
+
+  function updateReadouts() {
+    const mag = Math.hypot(omega[0], omega[1], omega[2]);
+    const energy = 0.5 * (
+      INERTIA[0] * omega[0] * omega[0] +
+      INERTIA[1] * omega[1] * omega[1] +
+      INERTIA[2] * omega[2] * omega[2]
+    );
+    el('r-time').textContent = simTime.toFixed(2) + ' s';
+    el('r-mag').textContent = mag.toFixed(3);
+    el('r-energy').textContent = energy.toFixed(3);
+    el('r-wx').textContent = signed(omega[0]);
+    el('r-wy').textContent = signed(omega[1]);
+    el('r-wz').textContent = signed(omega[2]);
+  }
+
+  function camRot(v) {
+    const cy = Math.cos(CAM_YAW), sy = Math.sin(CAM_YAW);
+    const x = v[0] * cy + v[2] * sy;
+    const z = -v[0] * sy + v[2] * cy;
+    const cp = Math.cos(CAM_PITCH), sp = Math.sin(CAM_PITCH);
+    return [x, v[1] * cp - z * sp, v[1] * sp + z * cp];
+  }
+
+  function drawArrow2D(ctx, p0, p1, color, width, dashed, glow) {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = width;
+    ctx.lineCap = 'round';
+    if (glow) {
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 10;
+    }
+    if (dashed) ctx.setLineDash([7, 5]);
+    ctx.beginPath();
+    ctx.moveTo(p0.x, p0.y);
+    ctx.lineTo(p1.x, p1.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    const ang = Math.atan2(p1.y - p0.y, p1.x - p0.x);
+    const size = 7 + width * 1.3;
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p1.x - Math.cos(ang - 0.38) * size, p1.y - Math.sin(ang - 0.38) * size);
+    ctx.lineTo(p1.x - Math.cos(ang + 0.38) * size, p1.y - Math.sin(ang + 0.38) * size);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawScene() {
+    const ctx = scene.ctx;
+    const w = scene.w, h = scene.h;
+    if (!w || !h) return;
+    ctx.setTransform(scene.dpr, 0, 0, scene.dpr, 0, 0);
+
+    const bg = ctx.createRadialGradient(
+      w * 0.5, h * 0.44, Math.min(w, h) * 0.05,
+      w * 0.5, h * 0.55, Math.max(w, h) * 0.72
+    );
+    bg.addColorStop(0, '#ffffff');
+    bg.addColorStop(0.55, '#eef3f9');
+    bg.addColorStop(1, '#d6e0ea');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    const F = 0.34 * Math.min(w, h) * CAM_D / RADIUS;
+    const project = (p) => {
+      const c = camRot(p);
+      const depth = CAM_D - c[2];
+      const s = F / Math.max(depth, 0.8);
+      return { x: w * 0.5 + c[0] * s, y: h * 0.5 - c[1] * s, depth };
+    };
+
+    const world = BOX_VERTS.map((v) => rotateVec(quat, v));
+    const scr = world.map(project);
+    const faces = BOX_FACES.map((face, idx) => {
+      const n = camRot(rotateVec(quat, face.n));
+      const lam = Math.abs(n[0] * LIGHT[0] + n[1] * LIGHT[1] + n[2] * LIGHT[2]);
+      let depth = 0;
+      for (let k = 0; k < 4; k++) depth += scr[face.v[k]].depth;
+      return { face, idx, lam, depth: depth / 4 };
+    }).sort((a, b) => b.depth - a.depth);
+
+    for (const item of faces) {
+      const base = FACE_COLORS[item.idx];
+      const shade = 0.62 + 0.38 * Math.pow(item.lam, 0.85);
+      const r = Math.round(clamp(base[0] * shade, 0, 255));
+      const g = Math.round(clamp(base[1] * shade, 0, 255));
+      const b = Math.round(clamp(base[2] * shade, 0, 255));
+      const vs = item.face.v;
+      ctx.beginPath();
+      ctx.moveTo(scr[vs[0]].x, scr[vs[0]].y);
+      for (let k = 1; k < 4; k++) ctx.lineTo(scr[vs[k]].x, scr[vs[k]].y);
+      ctx.closePath();
+      ctx.fillStyle = 'rgb(' + r + ', ' + g + ', ' + b + ')';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(30, 41, 59, 0.32)';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+
+    const origin = project([0, 0, 0]);
+    const AXES = [
+      { dir: [1, 0, 0], len: HALF[0] + 0.55, color: '#e5484d', label: 'x', main: false },
+      { dir: [0, 1, 0], len: HALF[1] + 0.5, color: '#1f9d55', label: 'y', main: true },
+      { dir: [0, 0, 1], len: HALF[2] + 0.45, color: '#2f6fed', label: 'z', main: false },
+    ];
+
+    for (const a of AXES) {
+      const tipBody = [a.dir[0] * a.len, a.dir[1] * a.len, a.dir[2] * a.len];
+      const tip = project(rotateVec(quat, tipBody));
+      const neg = project(rotateVec(quat, [-tipBody[0], -tipBody[1], -tipBody[2]]));
+
+      ctx.save();
+      ctx.strokeStyle = a.color;
+      ctx.lineWidth = 1.3;
+      ctx.globalAlpha = 0.3;
+      ctx.beginPath();
+      ctx.moveTo(neg.x, neg.y);
+      ctx.lineTo(tip.x, tip.y);
+      ctx.stroke();
+      ctx.restore();
+
+      drawArrow2D(ctx, origin, tip, a.color, a.main ? 3 : 2.1, false, a.main);
+
+      const lx = clamp(tip.x + (tip.x - origin.x) * 0.16, 16, w - 16);
+      const ly = clamp(tip.y + (tip.y - origin.y) * 0.16, 16, h - 16);
+      ctx.save();
+      ctx.font = '700 13px ui-monospace, Consolas, monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
+      ctx.strokeText(a.label, lx, ly);
+      ctx.fillStyle = a.color;
+      ctx.fillText(a.label, lx, ly);
+      ctx.restore();
+    }
+
+    const arrowLen = RADIUS * 1.15;
+    const drawWorldVector = (vec, color, label, dashed, side) => {
+      const m = Math.hypot(vec[0], vec[1], vec[2]);
+      if (m < 1e-9) return;
+      const tip = project([
+        vec[0] / m * arrowLen,
+        vec[1] / m * arrowLen,
+        vec[2] / m * arrowLen,
+      ]);
+      drawArrow2D(ctx, origin, tip, color, 2.3, dashed, true);
+      const dx = tip.x - origin.x;
+      const dy = tip.y - origin.y;
+      const dl = Math.hypot(dx, dy) || 1;
+      const lx = clamp(tip.x - dy / dl * 18 * side + dx / dl * 6, 20, w - 20);
+      const ly = clamp(tip.y + dx / dl * 18 * side + dy / dl * 6, 20, h - 20);
+      ctx.save();
+      ctx.font = 'italic 700 13px ui-monospace, Consolas, monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
+      ctx.strokeText(label, lx, ly);
+      ctx.fillStyle = color;
+      ctx.fillText(label, lx, ly);
+      ctx.restore();
+    };
+
+    drawWorldVector(rotateVec(quat, omega), '#d97706', '\u03c9', false, 1);
+    drawWorldVector(rotateVec(quat, [
+      INERTIA[0] * omega[0],
+      INERTIA[1] * omega[1],
+      INERTIA[2] * omega[2],
+    ]), '#0891b2', 'L', true, -1);
+  }
+
+  function drawChart() {
+    const ctx = chart.ctx;
+    const w = chart.w, h = chart.h;
+    if (!w || !h) return;
+    ctx.setTransform(chart.dpr, 0, 0, chart.dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, w, h);
+
+    const padL = 46, padR = 14, padT = 34, padB = 24;
+    const pw = Math.max(10, w - padL - padR);
+    const ph = Math.max(10, h - padT - padB);
+    const right = Math.max(simTime, WINDOW);
+    const left = right - WINDOW;
+
+    let maxAbs = 0.25;
+    for (let i = samples.length - 1; i >= 0; i--) {
+      const s = samples[i];
+      if (s.t < left) break;
+      for (let k = 0; k < 3; k++) maxAbs = Math.max(maxAbs, Math.abs(s.w[k]));
+    }
+    const targetMax = niceCeil(maxAbs * 1.15);
+    if (targetMax >= chartYMax) chartYMax = targetMax;
+    else chartYMax += (targetMax - chartYMax) * 0.12;
+
+    const xFor = (t) => padL + (t - left) / WINDOW * pw;
+    const yFor = (v) => padT + ph * (chartYMax - v) / (2 * chartYMax);
+
+    ctx.font = '10px ui-monospace, Consolas, monospace';
+    ctx.textBaseline = 'middle';
+    for (let i = 0; i <= 4; i++) {
+      const v = chartYMax * (1 - i / 2);
+      const y = yFor(v);
+      ctx.strokeStyle = i === 2 ? '#c3d0de' : '#e6edf5';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padL, y + 0.5);
+      ctx.lineTo(padL + pw, y + 0.5);
+      ctx.stroke();
+      ctx.fillStyle = '#64748b';
+      ctx.textAlign = 'right';
+      ctx.fillText(formatTick(v), padL - 8, y);
+    }
+
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'center';
+    const step = 2;
+    for (let t = Math.ceil(left / step) * step; t <= right + 1e-9; t += step) {
+      const x = xFor(t);
+      ctx.strokeStyle = '#e6edf5';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x + 0.5, padT);
+      ctx.lineTo(x + 0.5, padT + ph);
+      ctx.stroke();
+      ctx.fillStyle = '#64748b';
+      ctx.fillText(t.toFixed(0), x, padT + ph + 7);
+    }
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(padL, padT - 2, pw, ph + 4);
+    ctx.clip();
+    for (const s of SERIES) {
+      ctx.beginPath();
+      let started = false;
+      for (let i = 0; i < samples.length; i++) {
+        const smp = samples[i];
+        if (smp.t < left) continue;
+        if (smp.t > right) break;
+        const x = xFor(smp.t);
+        const y = yFor(smp.w[s.k]);
+        if (!started) {
+          ctx.moveTo(x, y);
+          started = true;
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = 1.8;
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+    }
+
+    const lastS = samples[samples.length - 1];
+    if (lastS && lastS.t >= left && lastS.t <= right) {
+      const x = xFor(lastS.t);
+      for (const s of SERIES) {
+        ctx.beginPath();
+        ctx.arc(x, yFor(lastS.w[s.k]), 2.6, 0, Math.PI * 2);
+        ctx.fillStyle = s.color;
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  const PRESETS = {
+    inter: [0.15, 4, 0.10],
+    max: [3.2, 0, 0],
+    min: [0, 0, 3.2],
+  };
+
+  for (const c of comps) {
+    c.input.addEventListener('input', () => {
+      c.output.textContent = signed(Number(c.input.value));
+      resetSim();
+    });
+  }
+
+  document.querySelectorAll('[data-preset]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const p = PRESETS[btn.dataset.preset];
+      comps.forEach((c, i) => {
+        c.input.value = p[i];
+        c.output.textContent = signed(p[i]);
+      });
+      resetSim();
+    });
+  });
+
+  el('in-speed').addEventListener('input', (e) => {
+    speed = Number(e.target.value);
+    el('out-speed').textContent = speed.toFixed(2) + '\u00d7';
+  });
+
+  const btnPause = el('btn-pause');
+  function togglePause() {
+    running = !running;
+    btnPause.textContent = running ? '\u6682\u505c' : '\u7ee7\u7eed';
+    if (running) lastT = performance.now();
+  }
+  btnPause.addEventListener('click', togglePause);
+  el('btn-reset').addEventListener('click', resetSim);
+
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' && !/^(INPUT|BUTTON|TEXTAREA)$/.test(e.target.tagName)) {
+      e.preventDefault();
+      togglePause();
+    }
+  });
+
+  function frame(now) {
+    let dt = (now - lastT) / 1000;
+    lastT = now;
+    if (!isFinite(dt) || dt < 0) dt = 0;
+    dt = Math.min(dt, 0.05);
+
+    if (running) {
+      simAcc += dt * speed;
+      let steps = 0;
+      while (simAcc >= H && steps < 3000) {
+        stepPhysics();
+        simAcc -= H;
+        steps++;
+      }
+      if (simAcc >= H) simAcc = 0;
+    }
+
+    drawScene();
+    drawChart();
+
+    readoutClock += dt;
+    if (readoutClock >= 0.08) {
+      readoutClock = 0;
+      updateReadouts();
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  comps.forEach((c) => {
+    c.output.textContent = signed(Number(c.input.value));
+  });
+  resetSim();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

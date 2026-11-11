@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>狭义相对论 · 异地同时的相对性</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    margin: 0; padding: 18px 22px 22px;
+    background: #f5f6f8; color: #222;
+    display: flex; flex-direction: column;
+  }
+  header { max-width: 1360px; width: 100%; margin: 0 auto 12px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #666; font-size: 13px; line-height: 1.7; }
+  .sub code {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12.5px; color: #1e3a8a;
+    background: #eef2f9; border: 1px solid #dde5f1;
+    padding: 1px 6px; border-radius: 5px;
+  }
+
+  .wrap {
+    max-width: 1360px; width: 100%; margin: 0 auto;
+    flex: 1; min-height: 0; display: flex; gap: 18px;
+  }
+  .main {
+    flex: 1; min-width: 0; min-height: 0;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .panels {
+    flex: 1; min-height: 0;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+  }
+  .card {
+    background: #fff; border: 1px solid #d0d4da; border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.06);
+  }
+  .panel {
+    min-width: 0; min-height: 0; display: flex; flex-direction: column;
+    padding: 10px 12px 12px;
+  }
+  .panel-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; flex-wrap: wrap; padding: 0 2px 8px;
+  }
+  .panel-title { display: flex; align-items: baseline; gap: 7px; min-width: 0; }
+  .panel-title b { font-size: 14px; color: #0f172a; font-weight: 600; }
+  .panel-title span { font-size: 11px; color: #94a3b8; white-space: nowrap; }
+  .mini { font-size: 11px; color: #64748b; white-space: nowrap; }
+  .canvas-wrap { position: relative; flex: 1; min-height: 0; }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+  .spacetime-row {
+    flex: 0 0 330px; min-height: 0;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+  }
+  .spacetime-row[hidden] { display: none; }
+  .st-panel { min-width: 0; min-height: 0; }
+
+  aside {
+    width: 340px; flex: 0 0 340px;
+    background: #fff; border: 1px solid #d0d4da; border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.06);
+    padding: 16px 18px; overflow-y: auto;
+  }
+  aside h2 { font-size: 14px; margin: 0 0 10px; letter-spacing: .3px; }
+  aside h2:not(:first-child) { margin-top: 17px; }
+  .row { margin-bottom: 11px; }
+  .dis { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; margin-bottom: 3px; }
+  .dis .val { font-variant-numeric: tabular-nums; color: #ea580c; font-weight: 600; font-size: 12.5px; }
+  input[type=range] { width: 100%; accent-color: #ea580c; }
+  .fixed {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 7px 9px; border: 1px solid #e3e8ef; border-radius: 8px;
+    background: #f7f9fc; font-size: 12px; color: #64748b;
+  }
+  .fixed b { color: #2563eb; font-variant-numeric: tabular-nums; }
+  .result-chip {
+    margin-top: 8px; border-color: #fed7aa; background: #fff7ed; color: #9a3412;
+  }
+  .result-chip b { color: #c2410c; }
+  .buttons { display: flex; gap: 8px; }
+  .buttons + .buttons { margin-top: 8px; }
+  button {
+    flex: 1; padding: 8px 0; border: 1px solid #cbd2dc; border-radius: 8px;
+    background: #fff; font-size: 12.5px; cursor: pointer; color: #222;
+    transition: background .15s, border-color .15s;
+  }
+  button:hover { background: #eef2f7; }
+  button.primary { background: #ea580c; color: #fff; border-color: #ea580c; }
+  button.primary:hover { background: #c2410c; }
+  button:active { transform: translateY(1px); }
+
+  .hint { font-size: 11px; color: #94a3b8; line-height: 1.65; margin: 8px 0 0; }
+  .progress-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 11.5px; color: #64748b; margin: 2px 0 5px;
+  }
+  .progress-head b { color: #ea580c; font-size: 12px; font-variant-numeric: tabular-nums; }
+  .seek { width: 100%; accent-color: #ea580c; margin: 0 0 2px; }
+
+  .toggles { display: flex; flex-wrap: wrap; gap: 7px; }
+  .toggle {
+    flex: none; width: auto; padding: 6px 11px;
+    border: 1px solid #cbd5e1; border-radius: 999px;
+    background: #fff; color: #475569; font-size: 11.5px;
+    line-height: 1.3; cursor: pointer;
+  }
+  .toggle:hover { background: #f8fafc; }
+  .toggle.active {
+    background: #fff7ed; border-color: #fdba74; color: #c2410c; font-weight: 600;
+  }
+
+  .order-block {
+    background: #f7f9fc; border: 1px solid #e8ebf0; border-radius: 8px;
+    padding: 9px 11px;
+  }
+  .order-title {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: #64748b; margin: 2px 0 5px;
+  }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+  .order-list { list-style: none; margin: 0 0 10px; padding: 0; }
+  .order-list:last-child { margin-bottom: 0; }
+  .order-list li {
+    position: relative; padding-left: 17px;
+    font-size: 11.5px; line-height: 1.95; color: #9aa5b5;
+    transition: color .15s;
+  }
+  .order-list li::before {
+    content: ''; position: absolute; left: 1px; top: 50%;
+    width: 8px; height: 8px; margin-top: -4px; border-radius: 50%;
+    border: 1.5px solid #cbd5e1; background: #fff;
+  }
+  .order-list li.done { color: #334155; }
+  .order-list li.done::before { background: #22c55e; border-color: #22c55e; }
+  .order-list li.now { color: #0f172a; font-weight: 600; }
+  .order-list li.now::before { box-shadow: 0 0 0 3px rgba(34,197,94,.20); }
+
+  .eq {
+    margin-top: 10px; padding: 9px 11px; border-radius: 8px;
+    background: #f7f9fc; border: 1px solid #e8ebf0;
+    font-size: 11.5px; color: #475569; line-height: 1.9;
+  }
+  .eq:first-of-type { margin-top: 8px; }
+  .eq b { color: #334155; font-weight: 600; }
+  .eq code {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    color: #1e3a8a; font-size: 11.5px;
+  }
+  .eq .accent { color: #ea580c; font-weight: 600; }
+
+  .legend { font-size: 11.5px; color: #64748b; line-height: 1.95; margin-top: 10px; }
+  .sw { display: inline-block; width: 16px; height: 0; vertical-align: 3px; margin-right: 6px; }
+  .sw.blue { border-top: 2px solid #2563eb; }
+  .sw.orange { border-top: 2px solid #ea580c; }
+  .sw.amber { border-top: 2px solid #f59e0b; }
+  .sw.gray { border-top: 1.5px dashed #94a3b8; }
+  .sw.purple { border-top: 1.5px dashed #7c3aed; }
+  .sw.cyan { border-top: 1.5px dashed #0891b2; }
+
+  .note { font-size: 11.5px; color: #8b95a7; line-height: 1.72; margin: 10px 0 0; }
+
+  @media (max-width: 1120px) {
+    body { height: auto; min-height: 100%; overflow-y: auto; }
+    .wrap { flex-direction: column; }
+    .panels { flex: 0 0 auto; }
+    .panel { height: 420px; }
+    .st-panel { height: auto; }
+    .spacetime-row { flex: 0 0 330px; height: 330px; }
+    aside { width: 100%; flex: 0 0 auto; overflow: visible; }
+  }
+  @media (max-width: 760px) {
+    body { padding: 14px; }
+    .panels { grid-template-columns: 1fr; }
+    .panel { height: 340px; }
+    .spacetime-row { grid-template-columns: 1fr; height: auto; flex: 0 0 auto; }
+    .st-panel { height: 300px; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>狭义相对论 · 异地同时的相对性</h1>
+    <div class="sub">
+      两艘飞船相向而过，中点重合时发出一次闪光。左右两栏分别是飞船 2 / 飞船 1 的静止系；
+      同一组“光到达端点”的事件，在两栏中的先后顺序不同。<code>A = 船头</code>，<code>B = 船尾</code>。
+      打开“时空图”可对比两系的同时线与时钟读数。
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="main">
+      <div class="panels">
+        <section class="card panel">
+          <div class="panel-head">
+            <div class="panel-title"><b>飞船 2 参考系</b><span>飞船 2 静止</span></div>
+            <div class="mini">1 号船以 βc 向右 · 长度 L/γ</div>
+          </div>
+          <div class="canvas-wrap"><canvas id="cvS2"></canvas></div>
+        </section>
+
+        <section class="card panel">
+          <div class="panel-head">
+            <div class="panel-title"><b>飞船 1 参考系</b><span>飞船 1 静止</span></div>
+            <div class="mini">2 号船以 βc 向左 · 长度 L/γ</div>
+          </div>
+          <div class="canvas-wrap"><canvas id="cvS1"></canvas></div>
+        </section>
+      </div>
+
+      <div class="spacetime-row" id="spacetimeRow" hidden>
+        <section class="card panel st-panel">
+          <div class="panel-head">
+            <div class="panel-title"><b>时空图 · 飞船 2 坐标</b><span>c = 1</span></div>
+            <div class="mini">灰 = 飞船2 · 紫 = 飞船1</div>
+          </div>
+          <div class="canvas-wrap"><canvas id="cvST2"></canvas></div>
+        </section>
+
+        <section class="card panel st-panel">
+          <div class="panel-head">
+            <div class="panel-title"><b>时空图 · 飞船 1 坐标</b><span>c = 1</span></div>
+            <div class="mini">灰 = 飞船2 · 紫 = 飞船1</div>
+          </div>
+          <div class="canvas-wrap"><canvas id="cvST1"></canvas></div>
+        </section>
+      </div>
+    </div>
+
+    <aside>
+      <h2>飞船速度</h2>
+      <div class="row">
+        <div class="dis"><label for="beta">β = v / c</label><span class="val" id="vBeta">0.60</span></div>
+        <input type="range" id="beta" min="0.1" max="0.9" step="0.01" value="0.6">
+      </div>
+      <div class="fixed">洛伦兹因子 γ <b id="vGamma">1.25</b></div>
+      <div class="fixed result-chip">船尾钟超前 L·v/c² <b id="vOffsetTop">0.60</b></div>
+
+      <h2>播放控制</h2>
+      <div class="row">
+        <div class="dis"><label for="playback">播放速度</label><span class="val" id="vPlayback">1.0×</span></div>
+        <input type="range" id="playback" min="0.1" max="2" step="0.1" value="1">
+      </div>
+      <div class="progress-head"><span>时间进度</span><b id="vProgress">0%</b></div>
+      <input type="range" id="progress" class="seek" min="0" max="1000" step="1" value="0" aria-label="时间进度">
+      <div class="buttons" style="margin-top:8px">
+        <button id="btnPlay" class="primary">暂停</button>
+        <button id="btnNext">下一事件</button>
+      </div>
+      <div class="buttons">
+        <button id="btnReset">重置</button>
+      </div>
+      <p class="hint">β 改变物理速度；播放速度只改变动画快慢。拖动进度条可任意定位；“下一事件”会停在关键帧。</p>
+
+      <h2>显示选项</h2>
+      <div class="toggles">
+        <button class="toggle" id="btnSpacetime" aria-pressed="false">时空图</button>
+        <button class="toggle active" id="btnSimLines" aria-pressed="true" title="在时空图中显示同时线">同时线</button>
+        <button class="toggle active" id="btnClocks" aria-pressed="true" title="显示时钟徽标与时空图读数">时钟</button>
+        <button class="toggle active" id="btnLight" aria-pressed="true">光前</button>
+      </div>
+
+      <h2>事件顺序</h2>
+      <div class="order-block">
+        <div class="order-title"><span class="dot" style="background:#ea580c"></span>飞船 2 参考系</div>
+        <ul class="order-list" id="orderS2">
+          <li>1B（船尾）接收 → 0</li>
+          <li>2A、2B 同时接收 → 0</li>
+          <li>1A（船头）接收 → 0</li>
+        </ul>
+        <div class="order-title"><span class="dot" style="background:#2563eb"></span>飞船 1 参考系</div>
+        <ul class="order-list" id="orderS1">
+          <li>2B（船尾）接收 → 0</li>
+          <li>1A、1B 同时接收 → 0</li>
+          <li>2A（船头）接收 → 0</li>
+        </ul>
+      </div>
+      <p class="hint">同一组事件，两种顺序。船尾（拖后的一端）总是先归零。</p>
+
+      <h2>关键结论</h2>
+      <div class="eq">
+        <b>对方两钟读数差（船尾 − 船头）</b><br>
+        <code>Δ = L·v/c² = <span class="accent" id="vOffset">0.60</span></code>（取 L = c = 1）<br>
+        船尾钟超前（读数更大），所以双方都认为对方的钟不同步。
+      </div>
+      <div class="eq">
+        <b>接收时刻</b><br>
+        <code>t₁ = L / [2γ(c+v)]</code><br>
+        <code>t₂ = L / (2c)</code><br>
+        <code>t₃ = L / [2γ(c−v)]</code>
+      </div>
+
+      <div class="legend">
+        <div><span class="sw blue"></span>飞船 1（蓝）· A1 船头 / B1 船尾</div>
+        <div><span class="sw orange"></span>飞船 2（橙）· A2 船头 / B2 船尾</div>
+        <div><span class="sw amber"></span>光信号（c = 1）</div>
+        <div><span class="sw gray"></span>飞船 2 同时线</div>
+        <div><span class="sw purple"></span>飞船 1 同时线</div>
+        <div><span class="sw cyan"></span>当前同时线（读数随它移动）</div>
+      </div>
+
+      <p class="note">
+        左右两栏的 <code>t</code> 是各自参考系的坐标时，数值相同并不代表同一时刻——这正是同时性相对性的体现。
+        这不是“光传播延迟”造成的错觉：每个参考系中光速都是 c，且向两端各向同速；差别在于对方飞船的船尾迎着光运动、船头背着光运动。
+        时空图上的时钟读数贴在当前同时线与钟世界线的交点上，随动画沿世界线移动；未接收时为灰色，接收后常亮。
+        同地（或类时相隔）事件的先后次序是绝对的；异地（类空相隔）事件是否同时，只相对于某个参考系才有意义。
+      </p>
+    </aside>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+
+  const COL1 = '#2563eb';
+  const COL2 = '#ea580c';
+  const COLL = '#f59e0b';
+  const COL_NOW = '#0891b2';
+  const RUN_SECONDS = 8;
+  const HOLD_SECONDS = 1.6;
+  const TAU = Math.PI * 2;
+
+  const $ = id => document.getElementById(id);
+  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+
+  function rgba(hex, a) {
+    const n = parseInt(hex.slice(1), 16);
+    return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+  }
+
+  const cvS2 = $('cvS2'), ctxS2 = cvS2.getContext('2d');
+  const cvS1 = $('cvS1'), ctxS1 = cvS1.getContext('2d');
+  const cvST2 = $('cvST2'), ctxST2 = cvST2.getContext('2d');
+  const cvST1 = $('cvST1'), ctxST1 = cvST1.getContext('2d');
+
+  const el = {
+    beta: $('beta'), vBeta: $('vBeta'), vGamma: $('vGamma'),
+    playback: $('playback'), vPlayback: $('vPlayback'),
+    progress: $('progress'), vProgress: $('vProgress'),
+    btnPlay: $('btnPlay'), btnNext: $('btnNext'), btnReset: $('btnReset'),
+    btnSpacetime: $('btnSpacetime'), btnSimLines: $('btnSimLines'),
+    btnClocks: $('btnClocks'), btnLight: $('btnLight'),
+    spacetimeRow: $('spacetimeRow'),
+    orderS1: $('orderS1'), orderS2: $('orderS2'),
+    vOffset: $('vOffset'), vOffsetTop: $('vOffsetTop')
+  };
+
+  const state = {
+    beta: 0.6,
+    playback: 1,
+    t: 0,
+    playing: true,
+    hold: 0,
+    showSpacetime: false,
+    showSimLines: true,
+    showClocks: true,
+    showLight: true
+  };
+
+  let gamma = 1;
+  let tFirst = 0.25;
+  let tMid = 0.5;
+  let tEnd = 1;
+  let halfOther = 0.4;
+  let seeking = false;
+
+  function recompute() {
+    const b = state.beta;
+    gamma = 1 / Math.sqrt(1 - b * b);
+    tFirst = 1 / (2 * gamma * (1 + b));
+    tMid = 0.5;
+    tEnd = 1 / (2 * gamma * (1 - b));
+    halfOther = 1 / (2 * gamma);
+  }
+
+  function fit(canvas, ctx) {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const w = Math.max(1, rect.width);
+    const h = Math.max(1, rect.height);
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { w: w, h: h };
+  }
+
+  function roundRectPath(ctx, x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function drawShipBody(ctx, ship, cx, cy, scale, hgt) {
+    const xL = cx + ship.xL * scale;
+    const xR = cx + ship.xR * scale;
+    const Lpx = xR - xL;
+    if (Lpx < 1) return;
+
+    const color = ship.ship === 1 ? COL1 : COL2;
+    const bowDir = ship.ship === 1 ? 1 : -1;
+    const P = p => (bowDir > 0 ? xL + p * Lpx : xR - p * Lpx);
+    const Y = q => cy - q * hgt;
+
+    // 引擎辉光（船尾外侧）
+    ctx.save();
+    for (let k = -1; k <= 1; k += 2) {
+      const gx = P(0.0);
+      const gy = Y(k * 0.22);
+      const rad = Math.max(4, hgt * 0.30);
+      const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, rad);
+      g.addColorStop(0, 'rgba(251,191,36,0.55)');
+      g.addColorStop(0.5, 'rgba(245,158,11,0.18)');
+      g.addColorStop(1, 'rgba(245,158,11,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(gx, gy, rad, 0, TAU);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // 船体轮廓
+    ctx.beginPath();
+    ctx.moveTo(P(0.0), Y(0.32));
+    ctx.quadraticCurveTo(P(0.02), Y(0.50), P(0.08), Y(0.50));
+    ctx.lineTo(P(0.60), Y(0.50));
+    ctx.quadraticCurveTo(P(0.82), Y(0.48), P(1.0), Y(0.0));
+    ctx.quadraticCurveTo(P(0.82), Y(-0.48), P(0.60), Y(-0.50));
+    ctx.lineTo(P(0.08), Y(-0.50));
+    ctx.quadraticCurveTo(P(0.02), Y(-0.50), P(0.0), Y(-0.32));
+    ctx.closePath();
+
+    const grad = ctx.createLinearGradient(0, cy - hgt / 2, 0, cy + hgt / 2);
+    grad.addColorStop(0, rgba(color, ship.own ? 0.30 : 0.20));
+    grad.addColorStop(0.45, rgba(color, ship.own ? 0.12 : 0.08));
+    grad.addColorStop(1, rgba(color, ship.own ? 0.26 : 0.17));
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = ship.own ? 2.5 : 1.8;
+    ctx.stroke();
+
+    // 船体细节
+    if (Lpx > 34) {
+      ctx.fillStyle = rgba(color, 0.22);
+      ctx.beginPath();
+      ctx.moveTo(P(0.03), Y(0.50));
+      ctx.lineTo(P(0.20), Y(0.50));
+      ctx.lineTo(P(0.06), Y(0.28));
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(P(0.03), Y(-0.50));
+      ctx.lineTo(P(0.20), Y(-0.50));
+      ctx.lineTo(P(0.06), Y(-0.28));
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = rgba(color, 0.38);
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.moveTo(P(0.14), Y(0));
+      ctx.lineTo(P(0.72), Y(0));
+      ctx.stroke();
+
+      const winCount = Lpx > 90 ? 3 : 1;
+      const winPs = winCount === 3 ? [0.30, 0.42, 0.54] : [0.44];
+      for (let i = 0; i < winPs.length; i++) {
+        const wx = P(winPs[i]);
+        const wy = Y(-0.10);
+        const rx = Math.max(1.2, Lpx * 0.020);
+        const ry = Math.max(1.1, hgt * 0.07);
+        ctx.beginPath();
+        ctx.ellipse(wx, wy, rx, ry, 0, 0, TAU);
+        ctx.fillStyle = 'rgba(224,242,254,0.92)';
+        ctx.fill();
+        ctx.strokeStyle = rgba(color, 0.32);
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+      }
+
+      if (Lpx > 70) {
+        ctx.beginPath();
+        ctx.ellipse(P(0.64), Y(0.10), Math.max(1.5, Lpx * 0.045), Math.max(1.5, hgt * 0.10), 0, 0, TAU);
+        ctx.fillStyle = 'rgba(219,234,254,0.85)';
+        ctx.fill();
+        ctx.strokeStyle = rgba(color, 0.35);
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+      }
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(P(0.14), Y(0.43));
+      ctx.lineTo(P(0.56), Y(0.44));
+      ctx.stroke();
+    }
+
+    if (Lpx > 18) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(15,23,42,0.65)';
+      for (let k = -1; k <= 1; k += 2) {
+        ctx.beginPath();
+        ctx.ellipse(P(0.035), Y(k * 0.22), Math.max(1.2, Lpx * 0.018), Math.max(1.4, hgt * 0.055), 0, 0, TAU);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
+  function clockSpec(frame, shipId, endName) {
+    const own = (frame === 'S2' && shipId === 2) || (frame === 'S1' && shipId === 1);
+    if (own) return { tZero: tMid, rate: 1 };
+    if (endName.charAt(0) === 'B') return { tZero: tFirst, rate: 1 / gamma };
+    return { tZero: tEnd, rate: 1 / gamma };
+  }
+
+  function drawClockBadge(ctx, xpx, edgeY, above, name, color, active, w, level) {
+    const bw = 46, bh = 20;
+    const bx = clamp(xpx - bw / 2, 3, w - bw - 3);
+    const lift = level * (bh + 5);
+    const by = above ? edgeY - bh - 9 - lift : edgeY + 9 + lift;
+
+    ctx.save();
+    ctx.strokeStyle = '#d7dee8';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    if (above) {
+      ctx.moveTo(xpx, edgeY);
+      ctx.lineTo(xpx, by + bh);
+    } else {
+      ctx.moveTo(xpx, edgeY);
+      ctx.lineTo(xpx, by);
+    }
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    if (active) {
+      ctx.shadowColor = rgba(color, 0.55);
+      ctx.shadowBlur = 10;
+    }
+    roundRectPath(ctx, bx, by, bw, bh, 6);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.strokeStyle = active ? color : '#cbd5e1';
+    ctx.lineWidth = active ? 1.8 : 1.1;
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.beginPath();
+    ctx.arc(bx + 11, by + bh / 2, 3.2, 0, TAU);
+    ctx.fillStyle = active ? color : '#cbd5e1';
+    ctx.fill();
+    if (active) {
+      ctx.beginPath();
+      ctx.arc(bx + 11, by + bh / 2, 5.6, 0, TAU);
+      ctx.fillStyle = rgba(color, 0.16);
+      ctx.fill();
+    }
+
+    ctx.save();
+    ctx.font = '600 11px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.fillStyle = active ? color : '#a8b3c2';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(name, bx + 27, by + bh / 2 + 0.5);
+    ctx.restore();
+  }
+
+  function drawShipDetails(ctx, ship, frame, t, cx, cy, scale, hgt, w) {
+    const color = ship.ship === 1 ? COL1 : COL2;
+    const above = ship.ship === 1;
+    const edgeY = above ? cy - hgt / 2 : cy + hgt / 2;
+    const zeroWin = tEnd * 0.04;
+
+    const midWorld = (ship.xL + ship.xR) / 2;
+    const midPx = cx + midWorld * scale;
+    ctx.beginPath();
+    ctx.arc(midPx, cy, 4, 0, TAU);
+    ctx.fillStyle = '#0f172a';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(midPx, cy, 8, 0, TAU);
+    ctx.strokeStyle = rgba(color, 0.55);
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    const ends = ship.ship === 1
+      ? [{ name: 'B1', x: ship.xL }, { name: 'A1', x: ship.xR }]
+      : [{ name: 'A2', x: ship.xL }, { name: 'B2', x: ship.xR }];
+    const span = Math.abs((ends[1].x - ends[0].x) * scale);
+    const stagger = span < 58;
+
+    for (let i = 0; i < ends.length; i++) {
+      const e = ends[i];
+      const xpx = cx + e.x * scale;
+      const spec = clockSpec(frame, ship.ship, e.name);
+      const active = t >= spec.tZero;
+      const dtp = t - spec.tZero;
+
+      if (dtp >= 0 && dtp < zeroWin) {
+        const zp = dtp / zeroWin;
+        ctx.beginPath();
+        ctx.arc(xpx, cy, 6 + zp * 62, 0, TAU);
+        ctx.strokeStyle = rgba(color, 0.55 * (1 - zp));
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      if (active) {
+        ctx.beginPath();
+        ctx.arc(xpx, cy, 10, 0, TAU);
+        ctx.fillStyle = rgba(color, 0.16);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(xpx, cy, 5.6, 0, TAU);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.arc(xpx, cy, 5, 0, TAU);
+        ctx.fillStyle = '#d3dbe6';
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      if (state.showClocks) {
+        drawClockBadge(
+          ctx, xpx, edgeY, above, e.name, color, active, w,
+          (stagger && i === 1) ? 1 : 0
+        );
+      }
+    }
+  }
+
+  function drawLight(ctx, t, cx, cy, scale) {
+    if (t <= 1e-4) return;
+    const xL = cx - t * scale;
+    const xR = cx + t * scale;
+
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(245,158,11,0.95)';
+    ctx.lineWidth = 3.2;
+    ctx.shadowColor = 'rgba(245,158,11,0.9)';
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.moveTo(xL, cy);
+    ctx.lineTo(xR, cy);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    for (let k = 0; k < 2; k++) {
+      const x = k === 0 ? xL : xR;
+      ctx.beginPath();
+      ctx.moveTo(x, cy - 10);
+      ctx.lineTo(x, cy + 10);
+      ctx.strokeStyle = 'rgba(245,158,11,0.78)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(x, cy, 3.2, 0, TAU);
+      ctx.fillStyle = COLL;
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawBurst(ctx, cx, cy) {
+    const r = 34;
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    g.addColorStop(0, 'rgba(245,158,11,0.95)');
+    g.addColorStop(0.35, 'rgba(245,158,11,0.45)');
+    g.addColorStop(1, 'rgba(245,158,11,0)');
+    ctx.save();
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function phaseCaption(frame, t) {
+    const stern = frame === 'S2' ? '1B' : '2B';
+    const bow = frame === 'S2' ? '1A' : '2A';
+    const own = frame === 'S2' ? '2' : '1';
+    if (t < 1e-9) return '中点重合，闪光发出';
+    if (t < tFirst - 1e-9) return '光正向两端传播…';
+    if (t < tMid - 1e-9) return stern + '（船尾）先收到光，归零';
+    if (t < tEnd - 1e-9) return own + 'A、' + own + 'B 同时收到光，归零';
+    return bow + '（船头）最后收到光，归零';
+  }
+
+  function drawPanel(canvas, ctx, frame) {
+    const size = fit(canvas, ctx);
+    const w = size.w, h = size.h;
+    ctx.clearRect(0, 0, w, h);
+    if (w < 60 || h < 60) return;
+
+    const t = state.t;
+    const maxExtent = tEnd * 1.06;
+    const scale = (w * 0.46) / maxExtent;
+    const cx = w / 2;
+    const cy = h / 2;
+    const hgt = clamp(scale * 0.30, 34, 70);
+    const halfOwn = 0.5;
+
+    ctx.save();
+    ctx.strokeStyle = '#e5eaf1';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 6]);
+    ctx.beginPath();
+    ctx.moveTo(cx - maxExtent * scale, cy);
+    ctx.lineTo(cx + maxExtent * scale, cy);
+    ctx.stroke();
+    ctx.restore();
+
+    let own, other;
+    if (frame === 'S2') {
+      own = { ship: 2, xL: -halfOwn, xR: halfOwn, own: true };
+      other = {
+        ship: 1, own: false,
+        xL: state.beta * t - halfOther,
+        xR: state.beta * t + halfOther
+      };
+    } else {
+      own = { ship: 1, xL: -halfOwn, xR: halfOwn, own: true };
+      other = {
+        ship: 2, own: false,
+        xL: -state.beta * t - halfOther,
+        xR: -state.beta * t + halfOther
+      };
+    }
+
+    drawShipBody(ctx, other, cx, cy, scale, hgt);
+    drawShipBody(ctx, own, cx, cy, scale, hgt);
+
+    if (state.showLight) drawLight(ctx, t, cx, cy, scale);
+
+    drawShipDetails(ctx, other, frame, t, cx, cy, scale, hgt, w);
+    drawShipDetails(ctx, own, frame, t, cx, cy, scale, hgt, w);
+
+    if (t < tEnd * 0.035) drawBurst(ctx, cx, cy);
+
+    ctx.save();
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '11px ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('本系坐标时 t = ' + t.toFixed(2) + ' L/c', 12, 10);
+    ctx.restore();
+
+    ctx.save();
+    ctx.fillStyle = '#8b95a7';
+    ctx.font = '11.5px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(phaseCaption(frame, t), cx, h - 12);
+    ctx.restore();
+  }
+
+  function drawStClockBadge(ctx, xpx, ypx, above, active, name, reading, color, w, h, leftSide) {
+    const bw = 52, bh = 17;
+    let bx = leftSide ? xpx - 6 - bw : xpx + 6;
+    bx = clamp(bx, 2, w - bw - 2);
+    let by = above ? ypx - bh - 6 : ypx + 6;
+    by = clamp(by, 2, h - bh - 2);
+
+    ctx.save();
+    ctx.strokeStyle = active ? rgba(color, 0.45) : '#d7dee8';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(xpx, ypx);
+    ctx.lineTo(leftSide ? bx + bw : bx, by + bh / 2);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    if (active) {
+      ctx.shadowColor = rgba(color, 0.55);
+      ctx.shadowBlur = 8;
+    }
+    roundRectPath(ctx, bx, by, bw, bh, 5);
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.fill();
+    ctx.strokeStyle = active ? color : '#cbd5e1';
+    ctx.lineWidth = active ? 1.5 : 1;
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.font = '600 9.5px ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = active ? color : '#9aa5b5';
+    ctx.fillText(name + ' ' + (active ? reading.toFixed(2) : '—'), bx + bw / 2, by + bh / 2 + 0.5);
+    ctx.restore();
+  }
+
+  function drawSpacetime(canvas, ctx, frame) {
+    const size = fit(canvas, ctx);
+    const w = size.w, h = size.h;
+    ctx.clearRect(0, 0, w, h);
+    if (w < 80 || h < 60) return;
+
+    const dir = frame === 'S2' ? 1 : -1;
+    const tMin = -0.10 * tEnd;
+    const tMax = 1.10 * tEnd;
+    const xLim = 1.12 * tEnd;
+    const m = { l: 36, r: 18, t: 16, b: 26 };
+    const uw = w - m.l - m.r;
+    const uh = h - m.t - m.b;
+    if (uw < 40 || uh < 40) return;
+
+    const s = Math.min(uw / (2 * xLim), uh / (tMax - tMin));
+    const x0 = m.l + uw / 2;
+    const yBottom = m.t + uh;
+    const X = x => x0 + x * s;
+    const Y = t => yBottom - (t - tMin) * s;
+
+    const ownId = frame === 'S2' ? 2 : 1;
+    const otherId = 3 - ownId;
+    const ownColor = ownId === 1 ? COL1 : COL2;
+    const otherColor = otherId === 1 ? COL1 : COL2;
+
+    const ownEvents = ownId === 1
+      ? [{ name: 'B1', label: 'B1', x: -0.5, t: tMid }, { name: 'A1', label: 'A1', x: 0.5, t: tMid }]
+      : [{ name: 'A2', label: 'A2', x: -0.5, t: tMid }, { name: 'B2', label: 'B2', x: 0.5, t: tMid }];
+    const otherEvents = otherId === 1
+      ? [{ name: 'B1', label: '1B', x: -tFirst, t: tFirst }, { name: 'A1', label: '1A', x: tEnd, t: tEnd }]
+      : [{ name: 'B2', label: '2B', x: tFirst, t: tFirst }, { name: 'A2', label: '2A', x: -tEnd, t: tEnd }];
+
+    const ship1Events = ownId === 1 ? ownEvents : otherEvents;
+    const ship2Events = ownId === 2 ? ownEvents : otherEvents;
+
+    function simSlope(G) {
+      if (G === frame) return 0;
+      return frame === 'S2' ? state.beta : -state.beta;
+    }
+
+    function drawSimLine(G, e, color, width, dash) {
+      const k = simSlope(G);
+      const c = e.t - k * e.x;
+      ctx.save();
+      ctx.setLineDash(dash);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(X(-xLim), Y(k * (-xLim) + c));
+      ctx.lineTo(X(xLim), Y(k * xLim + c));
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(m.l, m.t, uw, uh);
+    ctx.clip();
+
+    // 坐标轴
+    ctx.strokeStyle = '#dbe3ee';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(m.l, Y(0));
+    ctx.lineTo(w - m.r, Y(0));
+    ctx.moveTo(x0, m.t);
+    ctx.lineTo(x0, yBottom);
+    ctx.stroke();
+
+    // 负 t 段淡化
+    ctx.save();
+    ctx.setLineDash([3, 4]);
+    ctx.strokeStyle = 'rgba(148,163,184,0.55)';
+    ctx.beginPath();
+    ctx.moveTo(x0, Y(0));
+    ctx.lineTo(x0, yBottom);
+    ctx.stroke();
+    ctx.restore();
+
+    // 光线
+    ctx.strokeStyle = rgba(COLL, 0.85);
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(X(0), Y(0));
+    ctx.lineTo(X(tEnd), Y(tEnd));
+    ctx.moveTo(X(0), Y(0));
+    ctx.lineTo(X(-tEnd), Y(tEnd));
+    ctx.stroke();
+
+    // 本系飞船世界线
+    ctx.strokeStyle = rgba(ownColor, 0.8);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(X(-0.5), Y(0));
+    ctx.lineTo(X(-0.5), Y(tEnd));
+    ctx.moveTo(X(0.5), Y(0));
+    ctx.lineTo(X(0.5), Y(tEnd));
+    ctx.stroke();
+
+    // 对方飞船世界线
+    ctx.strokeStyle = rgba(otherColor, 0.8);
+    ctx.beginPath();
+    ctx.moveTo(X(-halfOther), Y(0));
+    ctx.lineTo(X(-halfOther + dir * state.beta * tEnd), Y(tEnd));
+    ctx.moveTo(X(halfOther), Y(0));
+    ctx.lineTo(X(halfOther + dir * state.beta * tEnd), Y(tEnd));
+    ctx.stroke();
+
+    // 中心世界线
+    ctx.save();
+    ctx.setLineDash([3, 5]);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(148,163,184,0.35)';
+    ctx.beginPath();
+    ctx.moveTo(X(0), Y(0));
+    ctx.lineTo(X(0), Y(tEnd));
+    ctx.moveTo(X(0), Y(0));
+    ctx.lineTo(X(dir * state.beta * tEnd), Y(tEnd));
+    ctx.stroke();
+    ctx.restore();
+
+    // 同时线
+    if (state.showSimLines) {
+      drawSimLine('S2', ship2Events[0], 'rgba(100,116,139,0.85)', 1.6, [6, 5]);
+      drawSimLine('S1', ship1Events[0], 'rgba(124,58,237,0.85)', 1.8, [6, 5]);
+      drawSimLine('S2', ship1Events[0], 'rgba(148,163,184,0.35)', 1, [3, 5]);
+      drawSimLine('S2', ship1Events[1], 'rgba(148,163,184,0.35)', 1, [3, 5]);
+      drawSimLine('S1', ship2Events[0], 'rgba(124,58,237,0.28)', 1, [3, 5]);
+      drawSimLine('S1', ship2Events[1], 'rgba(124,58,237,0.28)', 1, [3, 5]);
+    }
+
+    // 事件
+    const events = [{ label: 'E0', x: 0, t: 0, color: '#0f172a' }];
+    for (let i = 0; i < ownEvents.length; i++) {
+      events.push({
+        label: ownEvents[i].label, x: ownEvents[i].x, t: ownEvents[i].t, color: ownColor
+      });
+    }
+    for (let i = 0; i < otherEvents.length; i++) {
+      events.push({
+        label: otherEvents[i].label, x: otherEvents[i].x, t: otherEvents[i].t, color: otherColor
+      });
+    }
+
+    for (let i = 0; i < events.length; i++) {
+      const e = events[i];
+      const px = X(e.x), py = Y(e.t);
+      ctx.beginPath();
+      ctx.arc(px, py, 4.2, 0, TAU);
+      ctx.fillStyle = e.color;
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+
+      ctx.font = '600 10px ui-monospace, SFMono-Regular, Menlo, monospace';
+      ctx.fillStyle = e.color;
+      ctx.textAlign = e.x < 0 ? 'right' : 'left';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(e.label, px + (e.x < 0 ? -7 : 7), py - 5);
+    }
+
+    // 当前同时线
+    const tNow = state.t;
+    ctx.save();
+    ctx.setLineDash([2, 4]);
+    ctx.strokeStyle = 'rgba(8,145,178,0.7)';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(X(-xLim), Y(tNow));
+    ctx.lineTo(X(xLim), Y(tNow));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(8,145,178,0.9)';
+    ctx.font = '9.5px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('当前同时线', X(-xLim) + 3, Y(tNow) - 3);
+    ctx.restore();
+
+    // 原点标记
+    ctx.save();
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '9px ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'top';
+    ctx.fillText('O', X(0) - 4, Y(0) + 6);
+    ctx.restore();
+
+    ctx.restore(); // end clip
+
+    // 时钟读数（画在裁剪区外，避免被边界裁切）
+    const clocks = [];
+    if (ownId === 1) {
+      clocks.push({ name: 'B1', x: -0.5, tZero: tMid, rate: 1, color: COL1, own: true });
+      clocks.push({ name: 'A1', x: 0.5, tZero: tMid, rate: 1, color: COL1, own: true });
+    } else {
+      clocks.push({ name: 'A2', x: -0.5, tZero: tMid, rate: 1, color: COL2, own: true });
+      clocks.push({ name: 'B2', x: 0.5, tZero: tMid, rate: 1, color: COL2, own: true });
+    }
+    if (otherId === 1) {
+      clocks.push({ name: 'B1', x: dir * state.beta * tNow - halfOther, tZero: tFirst, rate: 1 / gamma, color: COL1, own: false });
+      clocks.push({ name: 'A1', x: dir * state.beta * tNow + halfOther, tZero: tEnd, rate: 1 / gamma, color: COL1, own: false });
+    } else {
+      clocks.push({ name: 'B2', x: dir * state.beta * tNow + halfOther, tZero: tFirst, rate: 1 / gamma, color: COL2, own: false });
+      clocks.push({ name: 'A2', x: dir * state.beta * tNow - halfOther, tZero: tEnd, rate: 1 / gamma, color: COL2, own: false });
+    }
+
+    const pairMeanOwn = (clocks[0].x + clocks[1].x) / 2;
+    const pairMeanOther = (clocks[2].x + clocks[3].x) / 2;
+
+    for (let i = 0; i < clocks.length; i++) {
+      const c = clocks[i];
+      const active = tNow >= c.tZero;
+      const reading = active ? (tNow - c.tZero) * c.rate : null;
+      const xpx = X(c.x);
+      const ypx = Y(tNow);
+      const leftSide = c.x <= (c.own ? pairMeanOwn : pairMeanOther);
+
+      ctx.save();
+      if (active) {
+        ctx.beginPath();
+        ctx.arc(xpx, ypx, 7, 0, TAU);
+        ctx.fillStyle = rgba(c.color, 0.16);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(xpx, ypx, 3.6, 0, TAU);
+        ctx.fillStyle = c.color;
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.arc(xpx, ypx, 3.2, 0, TAU);
+        ctx.fillStyle = '#cbd5e1';
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      if (state.showClocks) {
+        drawStClockBadge(ctx, xpx, ypx, c.own, active, c.name, reading, c.color, w, h, leftSide);
+      }
+    }
+
+    // 轴标签
+    ctx.save();
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '11px ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('x', w - m.r + 3, Y(0));
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('ct', X(0), m.t - 2);
+    ctx.restore();
+  }
+
+  function updateOrder(list) {
+    const times = [tFirst, tMid, tEnd];
+    const items = list.children;
+    for (let i = 0; i < items.length && i < times.length; i++) {
+      const done = state.t >= times[i] - 1e-9;
+      const now = Math.abs(state.t - times[i]) < tEnd * 0.012;
+      items[i].classList.toggle('done', done);
+      items[i].classList.toggle('now', now);
+    }
+  }
+
+  function updateUI() {
+    el.vBeta.textContent = state.beta.toFixed(2);
+    el.vGamma.textContent = gamma.toFixed(2);
+    el.vOffset.textContent = state.beta.toFixed(2);
+    el.vOffsetTop.textContent = state.beta.toFixed(2);
+    el.vPlayback.textContent = state.playback.toFixed(1) + '×';
+
+    const frac = tEnd > 0 ? clamp(state.t / tEnd, 0, 1) : 0;
+    el.vProgress.textContent = Math.round(frac * 100) + '%';
+    if (!seeking) el.progress.value = String(Math.round(frac * 1000));
+
+    updateOrder(el.orderS2);
+    updateOrder(el.orderS1);
+
+    el.btnPlay.textContent = state.playing ? '暂停' : '继续';
+    el.btnPlay.classList.toggle('primary', state.playing);
+  }
+
+  function setPlaying(playing) {
+    state.playing = playing;
+    updateUI();
+  }
+
+  el.beta.addEventListener('input', function () {
+    state.beta = parseFloat(this.value);
+    recompute();
+    state.t = 0;
+    state.hold = 0;
+    updateUI();
+  });
+
+  el.playback.addEventListener('input', function () {
+    state.playback = parseFloat(this.value);
+    updateUI();
+  });
+
+  el.progress.addEventListener('pointerdown', function () { seeking = true; });
+  window.addEventListener('pointerup', function () { seeking = false; });
+  el.progress.addEventListener('input', function () {
+    state.playing = false;
+    state.hold = 0;
+    state.t = clamp(parseInt(this.value, 10) / 1000, 0, 1) * tEnd;
+    updateUI();
+  });
+
+  el.btnPlay.addEventListener('click', function () {
+    if (!state.playing && state.t >= tEnd - 1e-9) {
+      state.t = 0;
+      state.hold = 0;
+    }
+    setPlaying(!state.playing);
+  });
+
+  el.btnNext.addEventListener('click', function () {
+    const keys = [0, tFirst, tMid, tEnd];
+    let target = 0;
+    for (let i = 0; i < keys.length; i++) {
+      if (keys[i] > state.t + 1e-4) {
+        target = keys[i];
+        break;
+      }
+    }
+    state.t = target;
+    state.hold = 0;
+    setPlaying(false);
+  });
+
+  el.btnReset.addEventListener('click', function () {
+    state.t = 0;
+    state.hold = 0;
+    setPlaying(true);
+  });
+
+  el.btnSpacetime.addEventListener('click', function () {
+    state.showSpacetime = !state.showSpacetime;
+    el.spacetimeRow.hidden = !state.showSpacetime;
+    el.btnSpacetime.classList.toggle('active', state.showSpacetime);
+    el.btnSpacetime.setAttribute('aria-pressed', String(state.showSpacetime));
+  });
+
+  el.btnSimLines.addEventListener('click', function () {
+    state.showSimLines = !state.showSimLines;
+    el.btnSimLines.classList.toggle('active', state.showSimLines);
+    el.btnSimLines.setAttribute('aria-pressed', String(state.showSimLines));
+  });
+
+  el.btnClocks.addEventListener('click', function () {
+    state.showClocks = !state.showClocks;
+    el.btnClocks.classList.toggle('active', state.showClocks);
+    el.btnClocks.setAttribute('aria-pressed', String(state.showClocks));
+  });
+
+  el.btnLight.addEventListener('click', function () {
+    state.showLight = !state.showLight;
+    el.btnLight.classList.toggle('active', state.showLight);
+    el.btnLight.setAttribute('aria-pressed', String(state.showLight));
+  });
+
+  let last = 0;
+  function frame(now) {
+    if (!last) last = now;
+    const dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
+    last = now;
+
+    if (state.playing) {
+      if (state.t < tEnd - 1e-9) {
+        const rate = tEnd / RUN_SECONDS;
+        state.t = Math.min(tEnd, state.t + dt * state.playback * rate);
+        if (state.t >= tEnd - 1e-9) state.hold = 0;
+      } else {
+        state.hold += dt;
+        if (state.hold >= HOLD_SECONDS) {
+          state.t = 0;
+          state.hold = 0;
+        }
+      }
+    }
+
+    drawPanel(cvS2, ctxS2, 'S2');
+    drawPanel(cvS1, ctxS1, 'S1');
+    if (state.showSpacetime) {
+      drawSpacetime(cvST2, ctxST2, 'S2');
+      drawSpacetime(cvST1, ctxST1, 'S1');
+    }
+    updateUI();
+
+    requestAnimationFrame(frame);
+  }
+
+  recompute();
+  el.beta.value = String(state.beta);
+  el.playback.value = String(state.playback);
+  el.spacetimeRow.hidden = true;
+  updateUI();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>广义相对论 · 近日点进动</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    margin: 0; padding: 18px 22px 22px;
+    background: #f5f6f8; color: #222;
+    display: flex; flex-direction: column;
+  }
+  header { max-width: 1240px; width: 100%; margin: 0 auto 12px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #666; font-size: 13px; }
+  .wrap {
+    max-width: 1240px; width: 100%; margin: 0 auto;
+    flex: 1; min-height: 0; display: flex; gap: 18px;
+  }
+  .stage {
+    flex: 1; min-width: 0; position: relative; overflow: hidden;
+    background: #fff; border: 1px solid #d0d4da; border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.06);
+  }
+  #cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  aside {
+    width: 320px; flex: 0 0 320px;
+    background: #fff; border: 1px solid #d0d4da; border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.06);
+    padding: 16px 18px; overflow-y: auto;
+  }
+  aside h2 { font-size: 14px; margin: 0 0 12px; letter-spacing: .3px; }
+  aside h2.second { margin-top: 18px; }
+  .row { margin-bottom: 15px; }
+  .dis {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 13px; margin-bottom: 3px;
+  }
+  .dis .val { font-variant-numeric: tabular-nums; color: #2563eb; font-weight: 600; }
+  input[type=range] { width: 100%; accent-color: #2563eb; }
+  .hint {
+    font-size: 11.5px; color: #94a3b8; margin-top: 3px;
+    font-variant-numeric: tabular-nums;
+  }
+  .buttons { display: flex; gap: 8px; margin: 4px 0 16px; }
+  button {
+    flex: 1; padding: 8px 0; border: 1px solid #cbd2dc; border-radius: 8px;
+    background: #fff; font-size: 14px; cursor: pointer; color: #222;
+  }
+  button:hover { background: #eef2f7; }
+  button.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+  button.primary:hover { background: #1d4ed8; }
+
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+  .stat { border-top: 1px solid #e8ebf0; padding-top: 7px; }
+  .stat span { display: block; font-size: 11.5px; color: #7c8798; }
+  .stat b {
+    font-size: 15px; font-variant-numeric: tabular-nums; font-weight: 600; color: #0f172a;
+  }
+  .stat b.hl { color: #2563eb; }
+  .eq {
+    margin-top: 16px; padding: 9px 11px; border-radius: 8px;
+    background: #f7f9fc; border: 1px solid #e8ebf0;
+    font-size: 12px; color: #475569; line-height: 1.85;
+  }
+  .eq code { font-family: ui-monospace, "SF Mono", Menlo, monospace; color: #1e3a8a; font-size: 12px; }
+  .note { font-size: 11.5px; color: #8b95a7; line-height: 1.7; margin-top: 10px; }
+  .legend { font-size: 12px; color: #64748b; margin-top: 14px; line-height: 2; }
+  .sw { display: inline-block; width: 16px; height: 0; vertical-align: 3px; margin-right: 6px; }
+  .sw.solid { border-top: 2px solid #2563eb; }
+  .sw.dashp { border-top: 1.6px dashed #ea580c; }
+  .sw.dasha { border-top: 1.6px dashed #94a3b8; }
+  .sw.dot { width: 7px; height: 7px; border-radius: 50%; background: #ea580c; vertical-align: 0; }
+
+  @media (max-width: 860px) {
+    body { padding: 12px; }
+    .wrap { flex-direction: column; }
+    .stage { min-height: 46vh; }
+    aside { width: 100%; flex: 0 0 auto; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>广义相对论 · 近日点进动</h1>
+    <div class="sub">史瓦西时空中的束缚测地线：修正项 3M u² 让椭圆不再闭合，近日点逐圈前移</div>
+  </header>
+
+  <div class="wrap">
+    <div class="stage"><canvas id="cv"></canvas></div>
+
+    <aside>
+      <h2>参数</h2>
+
+      <div class="row">
+        <div class="dis"><span>能量 E</span><span class="val" id="vE">-0.0149</span></div>
+        <input type="range" id="sE" min="-0.0220" max="-0.002" step="0.0001" value="-0.0149">
+        <div class="hint" id="hE"></div>
+      </div>
+
+      <div class="row">
+        <div class="dis"><span>角动量 J</span><span class="val" id="vL">5.00</span></div>
+        <input type="range" id="sL" min="4" max="9" step="0.02" value="5">
+        <div class="hint" id="hL"></div>
+      </div>
+
+      <div class="row">
+        <div class="dis"><span>修正强度 α</span><span class="val" id="vA">1.00</span></div>
+        <input type="range" id="sA" min="0" max="1" step="0.01" value="1">
+        <div class="hint">α = 0 为牛顿引力，α = 1 为广义相对论</div>
+      </div>
+
+      <div class="buttons">
+        <button id="btnPlay" class="primary">暂停</button>
+        <button id="btnReset">重置</button>
+      </div>
+
+      <h2 class="second">轨道读出</h2>
+      <div class="stats">
+        <div class="stat"><span>近日点 r<sub>p</sub></span><b id="vRp">–</b></div>
+        <div class="stat"><span>远日点 r<sub>a</sub></span><b id="vRa">–</b></div>
+        <div class="stat"><span>每圈进动 Δω</span><b class="hl" id="vPre">–</b></div>
+        <div class="stat"><span>偏心率 e</span><b id="vEcc">–</b></div>
+      </div>
+
+      <div class="eq">
+        <code>d²u/dφ² + u = M/J² + 3αMu²</code><br>
+        其中 <code>u = 1/r</code>，长度单位取 <code>M = GM/c²</code>
+      </div>
+
+      <div class="note">
+        轨道尺度已放大。真实的水星近日点进动约为每世纪 43″，
+        这里的进动在一圈之内就清晰可见。拖动 E 或 J 时，另一项会自动
+        限制在仍能维持束缚轨道的范围内。
+      </div>
+
+      <div class="legend">
+        <div><span class="sw solid"></span>行星轨迹（共 5 圈）</div>
+        <div><span class="sw dashp"></span>近日点所在圆周</div>
+        <div><span class="sw dasha"></span>远日点所在圆周</div>
+        <div><span class="sw dot"></span>每次经过近日点的位置</div>
+      </div>
+    </aside>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+
+  const M = 1;              // 长度单位：GM/c²
+  const ORBITS = 5;         // 展示的圈数
+  const H_STEP = 0.0015;    // 每步 φ 增量
+  const ANIM_SECONDS = 16;  // 跑完 5 圈的时间
+  const TRAIL = 90;         // 拖尾采样点数
+
+  const L_MIN = 4, L_MAX = 9;
+  const EPS_MAX = -0.002;   // 牛顿比能上限（对应相对论 E ≈ 0.998）
+  const EPS_EDGE = -0.5;    // 兜底下限（相对论 E → 0）
+
+  // 牛顿比能 ε = (E²-1)/2 与相对论比能 E 的换算
+  const toErel = eps => Math.sqrt(Math.max(0, 1 + 2 * eps));
+  const toEps = Erel => (Erel * Erel - 1) / 2;
+
+  const COL = {
+    path: 'rgba(37,99,235,0.42)',
+    peri: '#ea580c',
+    apo: '#94a3b8',
+    planet: '#1d4ed8'
+  };
+
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const bgc = document.createElement('canvas');
+  const bctx = bgc.getContext('2d');
+
+  const $ = id => document.getElementById(id);
+  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+
+  let W = 800, H = 700, DPR = 1;
+
+  const state = {
+    eps: -0.0149, L: 5.0, alpha: 1.0,
+    playing: true, s: 0, dirty: true, data: null
+  };
+
+  /* ================= 物理 ================= */
+
+  // 有效势 V(u) = 1 - 2Mu + J²u² - 2αMJ²u³
+  function vEff(u, L2, alpha) {
+    return 1 - 2 * M * u + L2 * u * u - 2 * alpha * M * L2 * u * u * u;
+  }
+
+  // 束缚轨道的能量窗口：(E_lo, E_hi)
+  // E_lo = 有效势阱底（圆轨道能量），E_hi = 势垒顶
+  function eWindow(L, alpha) {
+    const L2 = L * L;
+    if (alpha <= 1e-12) {
+      return { lo: Math.sqrt(Math.max(0, 1 - M * M / L2)), hi: 1, uLo: M / L2 };
+    }
+    const disc = 1 - 12 * alpha * M * M / L2;
+    if (disc <= 0) return null;
+    const rt = Math.sqrt(disc);
+    const uLo = (1 - rt) / (6 * alpha * M);   // 稳定圆轨道
+    const uHi = (1 + rt) / (6 * alpha * M);   // 势垒顶
+    return {
+      lo: Math.sqrt(Math.max(0, vEff(uLo, L2, alpha))),
+      hi: Math.min(1, Math.sqrt(Math.max(0, vEff(uHi, L2, alpha)))),
+      uLo
+    };
+  }
+
+  // 给定 E 时允许的最大 J（E_lo(J) 关于 J 单调递增）
+  function jMaxForEnergy(E, alpha) {
+    if (E <= eWindow(L_MIN, alpha).lo) return L_MIN;
+    let a = L_MIN, b = 200;
+    for (let i = 0; i < 90; i++) {
+      const m = 0.5 * (a + b);
+      if (eWindow(m, alpha).lo < E) a = m; else b = m;
+    }
+    return a;
+  }
+
+  // 近日点 → 远日点 → 近日点 的方位角：2∫ du/sqrt(f(u))
+  // 用 u = u_a + (u_p-u_a)sin²θ 消去端点的根号奇点
+  function apsidalAngle(ua, up, f, fp) {
+    const N = 4000, HALF = Math.PI / 2, du = up - ua;
+    const g0 = 2 * Math.sqrt(du / Math.max(fp(ua), 1e-12));
+    const g1 = 2 * Math.sqrt(du / Math.max(-fp(up), 1e-12));
+    let sum = 0;
+    for (let i = 0; i <= N; i++) {
+      const th = HALF * i / N;
+      let g;
+      if (i === 0) g = g0;
+      else if (i === N) g = g1;
+      else {
+        const s = Math.sin(th), c = Math.cos(th);
+        const val = f(ua + du * s * s);
+        g = val > 0 ? 2 * du * s * c / Math.sqrt(val) : 0;
+      }
+      sum += ((i === 0 || i === N) ? 1 : (i & 1 ? 4 : 2)) * g;
+    }
+    return 2 * sum * HALF / (3 * N);
+  }
+
+  function buildOrbit(E, L, alpha) {
+    const C = (E * E - 1) / (L * L);
+    // (du/dφ)² = C - u² + 2Mu/J² + 2αMu³
+    const f = u => C - u * u + 2 * M * u / (L * L) + 2 * alpha * M * u * u * u;
+    const fp = u => -2 * u + 2 * M / (L * L) + 6 * alpha * M * u * u;
+
+    // ---- 圆周轨道：E 恰为有效势极小值，两个转折点重合 ----
+    const win = eWindow(L, alpha);
+    if (win && Math.abs(E * E - win.lo * win.lo) <= 1e-9) {
+      const r = 1 / win.uLo;
+      const steps = Math.ceil(2 * Math.PI * ORBITS / H_STEP);
+      const xs = new Array(steps + 1);
+      const ys = new Array(steps + 1);
+      const taus = new Array(steps + 1);
+      const dtau = r * r / L * H_STEP;
+      for (let i = 0; i <= steps; i++) {
+        const phi = i * H_STEP;
+        xs[i] = r * Math.cos(phi);
+        ys[i] = r * Math.sin(phi);
+        taus[i] = i * dtau;
+      }
+      return {
+        ok: true, circular: true, xs, ys, taus,
+        rp: r, ra: r, peri: [], view: null, precession: 0
+      };
+    }
+
+    // ---- 转折点 ----
+    const roots = [];
+    const ulo = 1e-6, uhi = 0.62, NR = 5000;
+    let pu = ulo, pf = f(ulo);
+    for (let i = 1; i <= NR; i++) {
+      const u = ulo * Math.pow(uhi / ulo, i / NR);
+      const fu = f(u);
+      if (pf * fu < 0) {
+        let a = pu, b = u, fa = pf;
+        for (let k = 0; k < 70; k++) {
+          const m = 0.5 * (a + b), fm = f(m);
+          if ((fm < 0) === (fa < 0)) a = m; else b = m;
+        }
+        roots.push(0.5 * (a + b));
+      }
+      pu = u; pf = fu;
+      if (roots.length >= 3) break;
+    }
+    if (roots.length < 2) return { ok: false };
+
+    const ua = roots[0];   // 远日点
+    const up = roots[1];   // 近日点
+    if (!(up > 0) || up >= 0.49) return { ok: false };
+
+    const rp = 1 / up, ra = 1 / ua;
+
+    // ---- RK4 沿 φ 积分 ----
+    const steps = Math.ceil(2 * Math.PI * ORBITS / H_STEP);
+    const acc = u => -u + M / (L * L) + 3 * alpha * M * u * u;
+
+    const xs = [rp], ys = [0], taus = [0];
+    let u = up, v = 0, phi = 0, tau = 0;
+
+    for (let i = 0; i < steps; i++) {
+      const k1u = v,                       k1v = acc(u);
+      const k2u = v + 0.5 * H_STEP * k1v,  k2v = acc(u + 0.5 * H_STEP * k1u);
+      const k3u = v + 0.5 * H_STEP * k2v,  k3v = acc(u + 0.5 * H_STEP * k2u);
+      const k4u = v + H_STEP * k3v,        k4v = acc(u + H_STEP * k3u);
+      u += H_STEP / 6 * (k1u + 2 * k2u + 2 * k3u + k4u);
+      v += H_STEP / 6 * (k1v + 2 * k2v + 2 * k3v + k4v);
+      phi += H_STEP;
+
+      if (!(u > 1e-6) || u > 0.5) break;   // 落入视界
+
+      const r = 1 / u;
+      xs.push(r * Math.cos(phi));
+      ys.push(r * Math.sin(phi));
+      tau += r * r / L * H_STEP;           // dτ = r²/J dφ
+      taus.push(tau);
+    }
+
+    // ---- 近日点经过的位置 ----
+    const peri = [[rp, 0]];
+    for (let i = 1; i < xs.length - 1; i++) {
+      const r0 = Math.hypot(xs[i - 1], ys[i - 1]);
+      const r1 = Math.hypot(xs[i], ys[i]);
+      const r2 = Math.hypot(xs[i + 1], ys[i + 1]);
+      if (r1 < r0 && r1 <= r2) peri.push([xs[i], ys[i]]);
+    }
+
+    return {
+      ok: true, xs, ys, taus, rp, ra, peri, view: null,
+      precession: apsidalAngle(ua, up, f, fp) - 2 * Math.PI
+    };
+  }
+
+  /* ================= 静态层 ================= */
+
+  function paintStatic() {
+    bctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    bctx.clearRect(0, 0, W, H);
+    bctx.fillStyle = '#ffffff';
+    bctx.fillRect(0, 0, W, H);
+
+    const d = state.data;
+
+    if (!d || !d.ok) {
+      bctx.textAlign = 'center';
+      bctx.textBaseline = 'middle';
+      bctx.fillStyle = '#94a3b8';
+      bctx.font = '15px -apple-system, "PingFang SC", sans-serif';
+      bctx.fillText('该能量与角动量下不存在束缚轨道', W / 2, H / 2);
+      return;
+    }
+
+    const cx = W / 2, cy = H / 2;
+    const scale = Math.min(W, H) * 0.5 * 0.84 / d.ra;
+    d.view = { cx, cy, scale };
+
+    // 轨道轨迹
+    bctx.lineJoin = 'round';
+    bctx.lineCap = 'round';
+    bctx.beginPath();
+    for (let i = 0; i < d.xs.length; i++) {
+      const X = cx + d.xs[i] * scale, Y = cy - d.ys[i] * scale;
+      i ? bctx.lineTo(X, Y) : bctx.moveTo(X, Y);
+    }
+    bctx.strokeStyle = COL.path;
+    bctx.lineWidth = 1.3;
+    bctx.stroke();
+
+    // 近日点 / 远日点 圆周
+    bctx.save();
+    bctx.setLineDash([6, 6]);
+    bctx.lineWidth = 1.3;
+    bctx.strokeStyle = COL.peri;
+    bctx.beginPath(); bctx.arc(cx, cy, d.rp * scale, 0, 6.2832); bctx.stroke();
+    if (d.ra - d.rp > 1e-6 * d.ra) {
+      bctx.strokeStyle = COL.apo;
+      bctx.beginPath(); bctx.arc(cx, cy, d.ra * scale, 0, 6.2832); bctx.stroke();
+    }
+    bctx.restore();
+
+    // 每次经过近日点的位置
+    bctx.fillStyle = COL.peri;
+    for (const p of d.peri) {
+      bctx.beginPath();
+      bctx.arc(cx + p[0] * scale, cy - p[1] * scale, 3, 0, 6.2832);
+      bctx.fill();
+    }
+
+    // 中心天体
+    const halo = bctx.createRadialGradient(cx, cy, 0, cx, cy, 26);
+    halo.addColorStop(0, 'rgba(245,158,11,0.28)');
+    halo.addColorStop(1, 'rgba(245,158,11,0)');
+    bctx.fillStyle = halo;
+    bctx.beginPath(); bctx.arc(cx, cy, 26, 0, 6.2832); bctx.fill();
+    bctx.fillStyle = '#f59e0b';
+    bctx.beginPath(); bctx.arc(cx, cy, 5.5, 0, 6.2832); bctx.fill();
+
+    // 半径标注
+    bctx.save();
+    bctx.setLineDash([6, 6]);
+    bctx.lineWidth = 1.4;
+    bctx.font = '12px -apple-system, "PingFang SC", sans-serif';
+    bctx.textAlign = 'left';
+    bctx.textBaseline = 'middle';
+
+    const lx = 18, ly = H - 56;
+    if (d.circular) {
+      bctx.strokeStyle = COL.peri;
+      bctx.beginPath(); bctx.moveTo(lx, ly); bctx.lineTo(lx + 24, ly); bctx.stroke();
+      bctx.fillStyle = '#64748b';
+      bctx.fillText('圆轨道  r = ' + d.rp.toFixed(2) + ' M', lx + 32, ly);
+    } else {
+      bctx.strokeStyle = COL.peri;
+      bctx.beginPath(); bctx.moveTo(lx, ly); bctx.lineTo(lx + 24, ly); bctx.stroke();
+      bctx.fillStyle = '#64748b';
+      bctx.fillText('近日点圆周  r\u209a = ' + d.rp.toFixed(2) + ' M', lx + 32, ly);
+
+      bctx.strokeStyle = COL.apo;
+      bctx.beginPath(); bctx.moveTo(lx, ly + 22); bctx.lineTo(lx + 24, ly + 22); bctx.stroke();
+      bctx.fillStyle = '#64748b';
+      bctx.fillText('远日点圆周  r\u2090 = ' + d.ra.toFixed(2) + ' M', lx + 32, ly + 22);
+    }
+    bctx.restore();
+  }
+
+  /* ================= 每帧绘制 ================= */
+
+  function draw() {
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    ctx.drawImage(bgc, 0, 0, W, H);
+
+    const d = state.data;
+    if (!d || !d.ok || !d.view) return;
+
+    const { cx, cy, scale } = d.view;
+    const n = d.xs.length;
+    const target = state.s * d.taus[n - 1];
+
+    let lo = 0, hi = n - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (d.taus[mid] < target) lo = mid + 1; else hi = mid;
+    }
+    const i1 = lo, i0 = Math.max(0, lo - 1);
+    let fr = 0;
+    if (i1 > i0 && d.taus[i1] > d.taus[i0]) {
+      fr = (target - d.taus[i0]) / (d.taus[i1] - d.taus[i0]);
+    }
+    fr = clamp(fr, 0, 1);
+    const px = i1 === i0 ? d.xs[i1] : d.xs[i0] + (d.xs[i1] - d.xs[i0]) * fr;
+    const py = i1 === i0 ? d.ys[i1] : d.ys[i0] + (d.ys[i1] - d.ys[i0]) * fr;
+
+    // 拖尾
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 2.2;
+    const start = Math.max(0, lo - TRAIL);
+    for (let j = start; j < lo; j++) {
+      const a = Math.pow((j - start) / TRAIL, 1.6) * 0.85;
+      ctx.strokeStyle = 'rgba(37,99,235,' + a.toFixed(3) + ')';
+      ctx.beginPath();
+      ctx.moveTo(cx + d.xs[j] * scale, cy - d.ys[j] * scale);
+      ctx.lineTo(cx + d.xs[j + 1] * scale, cy - d.ys[j + 1] * scale);
+      ctx.stroke();
+    }
+
+    // 行星
+    const X = cx + px * scale, Y = cy - py * scale;
+    const gl = ctx.createRadialGradient(X, Y, 0, X, Y, 15);
+    gl.addColorStop(0, 'rgba(37,99,235,0.32)');
+    gl.addColorStop(1, 'rgba(37,99,235,0)');
+    ctx.fillStyle = gl;
+    ctx.beginPath(); ctx.arc(X, Y, 15, 0, 6.2832); ctx.fill();
+
+    ctx.fillStyle = COL.planet;
+    ctx.beginPath(); ctx.arc(X, Y, 5.5, 0, 6.2832); ctx.fill();
+  }
+
+  /* ================= 参数约束与界面 ================= */
+
+  // 保证 (E, J) 始终落在存在束缚轨道的区域内
+  function enforce() {
+    const a = state.alpha;
+    for (let k = 0; k < 3; k++) {
+      let win = eWindow(state.L, a);
+      if (win) state.eps = clamp(state.eps, toEps(win.lo), EPS_MAX);
+
+      const jHi = Math.max(L_MIN, Math.min(L_MAX, jMaxForEnergy(toErel(state.eps), a)));
+      state.L = clamp(state.L, L_MIN, jHi);
+
+      win = eWindow(state.L, a);
+      const epsLo = win ? toEps(win.lo) : EPS_EDGE;
+      state.eps = clamp(state.eps, epsLo, EPS_MAX);
+
+      $('sE').min = String(epsLo);
+      $('sE').max = EPS_MAX;
+      $('sL').min = L_MIN;
+      $('sL').max = String(jHi);
+    }
+    $('sE').value = state.eps;
+    $('sL').value = state.L;
+    $('sA').value = state.alpha;
+  }
+
+  function syncLabels() {
+    $('vE').textContent = state.eps.toFixed(4);
+    $('vL').textContent = state.L.toFixed(2);
+    $('vA').textContent = state.alpha.toFixed(2);
+    $('hE').textContent = '束缚轨道需 E ≥ ' + parseFloat($('sE').min).toFixed(4);
+    $('hL').textContent = '束缚轨道需 J ≤ ' + (parseFloat($('sL').max)).toFixed(2);
+  }
+
+  function updateReadouts() {
+    const d = state.data;
+    if (d && d.ok) {
+      $('vRp').textContent = d.rp.toFixed(2) + ' M';
+      $('vRa').textContent = d.ra.toFixed(2) + ' M';
+      $('vPre').textContent = d.circular
+        ? '—'
+        : (d.precession * 180 / Math.PI).toFixed(2) + '°';
+      $('vEcc').textContent = ((d.ra - d.rp) / (d.ra + d.rp)).toFixed(3);
+    } else {
+      ['vRp', 'vRa', 'vPre', 'vEcc'].forEach(id => { $(id).textContent = '–'; });
+    }
+  }
+
+  function rebuild() {
+    enforce();
+    syncLabels();
+    state.data = buildOrbit(toErel(state.eps), state.L, state.alpha);
+    updateReadouts();
+    paintStatic();
+    state.dirty = false;
+  }
+
+  function resize() {
+    const r = cv.parentElement.getBoundingClientRect();
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = Math.max(240, Math.round(r.width));
+    H = Math.max(240, Math.round(r.height));
+
+    cv.width = Math.round(W * DPR);
+    cv.height = Math.round(H * DPR);
+    bgc.width = cv.width;
+    bgc.height = cv.height;
+
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    paintStatic();
+  }
+
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+
+    if (state.dirty) rebuild();
+
+    if (state.playing && state.data && state.data.ok) {
+      state.s += dt / ANIM_SECONDS;
+      if (state.s >= 1) state.s -= 1;
+    }
+
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  /* ================= 事件 ================= */
+
+  function onInput(key) {
+    return e => {
+      state[key] = parseFloat(e.target.value);
+      state.dirty = true;
+    };
+  }
+
+  $('sE').addEventListener('input', onInput('eps'));
+  $('sL').addEventListener('input', onInput('L'));
+  $('sA').addEventListener('input', onInput('alpha'));
+
+  $('btnPlay').addEventListener('click', () => {
+    state.playing = !state.playing;
+    $('btnPlay').textContent = state.playing ? '暂停' : '播放';
+    $('btnPlay').classList.toggle('primary', state.playing);
+  });
+
+  $('btnReset').addEventListener('click', () => {
+    state.eps = -0.0149;
+    state.L = 5.0;
+    state.alpha = 1.0;
+    state.s = 0;
+    state.playing = true;
+    state.dirty = true;
+    $('btnPlay').textContent = '暂停';
+    $('btnPlay').classList.add('primary');
+  });
+
+  if (window.ResizeObserver) {
+    new ResizeObserver(() => resize()).observe(cv.parentElement);
+  } else {
+    window.addEventListener('resize', resize);
+  }
+
+  /* ================= 启动 ================= */
+
+  resize();
+  rebuild();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

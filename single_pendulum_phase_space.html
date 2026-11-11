@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>单摆 · 相空间演示</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    margin: 0; padding: 18px 22px 22px;
+    background: #f5f6f8; color: #222;
+    display: flex; flex-direction: column;
+  }
+  header { max-width: 1240px; width: 100%; margin: 0 auto 12px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #666; font-size: 13px; line-height: 1.7; }
+  .sub code {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12.5px; color: #1e3a8a;
+    background: #eef2f9; border: 1px solid #dde5f1;
+    padding: 1px 6px; border-radius: 5px;
+  }
+  .wrap {
+    max-width: 1240px; width: 100%; margin: 0 auto;
+    flex: 1; min-height: 0; display: flex; gap: 18px;
+  }
+  .left { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .card {
+    background: #fff; border: 1px solid #d0d4da; border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.06);
+  }
+  #phaseCard {
+    flex: 1; min-height: 360px; display: flex; flex-direction: column;
+    padding: 9px 14px 10px;
+  }
+  .plot-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 0 2px 7px; font-size: 12px; color: #64748b;
+  }
+  .plot-head b { color: #334155; font-weight: 600; }
+  .note-mini { color: #94a3b8; font-size: 11px; margin-left: 8px; white-space: nowrap; }
+  .head-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+  .legend { display: flex; align-items: center; gap: 12px; font-size: 11px; color: #64748b; }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+  .sw { display: inline-block; width: 16px; height: 0; vertical-align: 3px; }
+  .sw.orbit { border-top: 2px solid #2563eb; }
+  .sw.sep { border-top: 1.6px dashed #ea580c; }
+  .sw.ref { border-top: 1.4px solid #94a3b8; }
+  .sw.field { border-top: 1.2px solid #94a3b8; }
+  .tgbtn {
+    flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 9px; border: 1px solid #cbd5e1; border-radius: 999px;
+    background: #fff; color: #64748b; font-size: 11.5px; line-height: 1.2;
+    cursor: pointer; user-select: none; white-space: nowrap;
+  }
+  .tgbtn .sw { width: 14px; }
+  .tgbtn:hover { background: #f1f5f9; }
+  .tgbtn.active { background: #eff6ff; border-color: #bfdbfe; color: #2563eb; }
+  .tgbtn.active:hover { background: #e3efff; }
+  #phase { flex: 1; width: 100%; min-height: 0; display: block; }
+
+  aside {
+    width: 326px; flex: 0 0 326px;
+    background: #fff; border: 1px solid #d0d4da; border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.06);
+    padding: 16px 18px; overflow-y: auto;
+  }
+  aside h2 { font-size: 14px; margin: 0 0 10px; letter-spacing: .3px; }
+  aside h2:not(:first-of-type) { margin-top: 16px; }
+  .mini {
+    background: #f7f9fc; border: 1px solid #e3e8ef; border-radius: 9px;
+    padding: 8px 10px 4px; margin-bottom: 16px;
+  }
+  .mini-head {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 11.5px; color: #64748b; padding: 0 2px 4px;
+  }
+  .mini-head b { color: #334155; font-weight: 600; }
+  .mini-head span:last-child {
+    font-variant-numeric: tabular-nums; color: #2563eb; font-weight: 600;
+  }
+  #mini { width: 100%; height: 146px; display: block; }
+  .row { margin-bottom: 11px; }
+  .dis { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; margin-bottom: 2px; }
+  .dis .val { font-variant-numeric: tabular-nums; color: #2563eb; font-weight: 600; font-size: 12.5px; }
+  input[type=range] { width: 100%; accent-color: #2563eb; }
+  .buttons { display: flex; gap: 8px; }
+  button {
+    flex: 1; padding: 7px 0; border: 1px solid #cbd2dc; border-radius: 8px;
+    background: #fff; font-size: 12.5px; cursor: pointer; color: #222;
+    transition: background .15s, border-color .15s;
+  }
+  button:hover { background: #eef2f7; }
+  button.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+  button.primary:hover { background: #1d4ed8; }
+  button.active { background: #eff6ff; border-color: #bfdbfe; color: #2563eb; font-weight: 600; }
+  button:active { transform: translateY(1px); }
+
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat {
+    background: #f7f9fc; border: 1px solid #e3e8ef; border-radius: 8px;
+    padding: 7px 9px; font-size: 11px; color: #6b7280;
+  }
+  .stat b { display: block; font-size: 15px; color: #0f172a; font-variant-numeric: tabular-nums; }
+  .stat b span { font-size: 11px; font-weight: 500; color: #94a3b8; }
+  .stat b.txt { font-size: 13px; line-height: 21px; font-weight: 600; }
+
+  .eq {
+    margin-top: 12px; padding: 9px 11px; border-radius: 8px;
+    background: #f7f9fc; border: 1px solid #e8ebf0;
+    font-size: 11.5px; color: #475569; line-height: 1.9;
+  }
+  .eq b { color: #334155; font-weight: 600; }
+  .eq code { font-family: ui-monospace, "SF Mono", Menlo, monospace; color: #1e3a8a; font-size: 11.5px; }
+  .desc { font-size: 12px; color: #475569; margin-top: 10px; min-height: 36px; line-height: 1.65; }
+  .hint { font-size: 11px; color: #94a3b8; line-height: 1.7; margin: 10px 0 0; font-variant-numeric: tabular-nums; }
+
+  @media (max-width: 900px) {
+    body { padding: 14px; height: auto; min-height: 100%; overflow-y: auto; }
+    .wrap { flex-direction: column; }
+    .left { flex: 0 0 auto; }
+    .left, aside { width: 100%; min-width: 0; }
+    #phaseCard { height: 430px; flex: 0 0 auto; }
+    .plot-head { flex-wrap: wrap; }
+    .legend { flex-wrap: wrap; }
+    .note-mini { display: none; }
+    aside { flex: 0 0 auto; overflow: visible; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>单摆 · 相空间</h1>
+    <div class="sub">
+      <code>θ̈ + (g/L) sin θ = 0</code>
+      &nbsp;改变总能量，观察相轨道从闭合摆动变为开放旋转；橙色虚线是分界线。
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="left">
+      <div class="card" id="phaseCard">
+        <div class="plot-head">
+          <span><b>相空间 θ–ω</b><span class="note-mini" id="phaseNote">ε &lt; 2：闭合轨道</span></span>
+          <div class="head-right">
+            <span class="legend">
+              <span><i class="sw orbit" id="swOrbit"></i>当前轨道</span>
+              <span><i class="sw sep"></i>分界线 ε = 2</span>
+            </span>
+            <button class="tgbtn active" id="btnContours" type="button" aria-pressed="true">
+              <i class="sw ref"></i>等高线
+            </button>
+            <button class="tgbtn active" id="btnField" type="button" aria-pressed="true">
+              <i class="sw field"></i>矢量场
+            </button>
+          </div>
+        </div>
+        <canvas id="phase"></canvas>
+      </div>
+    </div>
+
+    <aside>
+      <div class="mini">
+        <div class="mini-head"><span><b>摆球运动</b></span><span id="miniAngle">θ = +0.0°</span></div>
+        <canvas id="mini"></canvas>
+      </div>
+
+      <h2>能量</h2>
+      <div class="row">
+        <div class="dis"><label for="energy">无量纲能量 ε = E/(mgL)</label><span class="val" id="v-eps">1.00</span></div>
+        <input type="range" id="energy" min="0" max="4" step="0.01" value="1">
+        <div class="hint" id="hE">E = 9.81 J · ω₀ = 3.13 rad/s</div>
+      </div>
+      <div class="row">
+        <div class="dis"><label for="speed">播放速度</label><span class="val" id="v-speed">1.0×</span></div>
+        <input type="range" id="speed" min="0.25" max="2" step="0.05" value="1">
+      </div>
+
+      <h2>快捷情形</h2>
+      <div class="buttons" style="margin-bottom:8px">
+        <button data-eps="0.15">小摆动</button>
+        <button data-eps="1.5">大摆动</button>
+      </div>
+      <div class="buttons" style="margin-bottom:8px">
+        <button data-eps="1.98">近分界</button>
+        <button data-eps="2">分界</button>
+      </div>
+      <div class="buttons">
+        <button data-eps="2.5">旋转</button>
+        <button data-eps="4">高速旋转</button>
+      </div>
+
+      <div class="buttons" style="margin-top:10px">
+        <button id="toggle" class="primary">暂停</button>
+        <button id="reset">重置</button>
+      </div>
+
+      <h2>实时读数</h2>
+      <div class="stats">
+        <div class="stat">运动类型<b id="ro-regime" class="txt">摆动</b></div>
+        <div class="stat">总能量 E<b id="ro-E">9.81 <span>J</span></b></div>
+        <div class="stat">转折角 ±θmax<b id="ro-turn">±90.0°</b></div>
+        <div class="stat">周期 T<b id="ro-period">2.37 <span>s</span></b></div>
+        <div class="stat">最大速度<b id="ro-vmax">4.43 <span>m/s</span></b></div>
+        <div class="stat">当前速度 |v|<b id="ro-v">4.43 <span>m/s</span></b></div>
+        <div class="stat">当前角 θ<b id="ro-theta">+0.0°</b></div>
+        <div class="stat">当前角速度 ω<b id="ro-omega">4.43 <span>rad/s</span></b></div>
+      </div>
+
+      <div class="desc" id="desc"></div>
+
+      <div class="eq">
+        <b>能量与轨道</b><br>
+        <code>ε = E/(mgL) = ½(ω/ω₀)² + 1 − cos θ</code><br>
+        <code>ω₀ = √(g/L) = 3.13 rad/s</code><br>
+        <code>ε &lt; 2</code> 闭合轨道 &nbsp; <code>ε = 2</code> 分界线 &nbsp; <code>ε &gt; 2</code> 开放轨道
+      </div>
+
+      <p class="hint">拖动能量滑块时，相点会沿新能量等高线重新定位；如果当前角度无法达到，就移到转折点。改变能量会清空拖尾并重新计时。空格键可暂停或继续。</p>
+    </aside>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+
+  const G = 9.81;
+  const L = 1.0;
+  const MASS = 1.0;
+  const W0 = Math.sqrt(G / L);
+  const EPS_MAX = 4.0;
+  const U_MAX = 3.2;
+  const REF_LEVELS = [0.2, 0.6, 1.0, 1.4, 1.8, 2.5, 3.2, 3.8];
+  const C_LIB = '#2563eb';
+  const C_ROT = '#7c3aed';
+  const C_SEP = '#ea580c';
+
+  const phase = document.getElementById('phase');
+  const pctx = phase.getContext('2d');
+  const mini = document.getElementById('mini');
+  const mctx = mini.getContext('2d');
+  const bg = document.createElement('canvas');
+  const bgctx = bg.getContext('2d');
+
+  const el = {
+    energy: document.getElementById('energy'),
+    speed: document.getElementById('speed'),
+    vEps: document.getElementById('v-eps'),
+    vSpeed: document.getElementById('v-speed'),
+    hE: document.getElementById('hE'),
+    phaseNote: document.getElementById('phaseNote'),
+    miniAngle: document.getElementById('miniAngle'),
+    swOrbit: document.getElementById('swOrbit'),
+    roRegime: document.getElementById('ro-regime'),
+    roE: document.getElementById('ro-E'),
+    roTurn: document.getElementById('ro-turn'),
+    roPeriod: document.getElementById('ro-period'),
+    roVmax: document.getElementById('ro-vmax'),
+    roV: document.getElementById('ro-v'),
+    roTheta: document.getElementById('ro-theta'),
+    roOmega: document.getElementById('ro-omega'),
+    desc: document.getElementById('desc'),
+    toggle: document.getElementById('toggle'),
+    reset: document.getElementById('reset'),
+    btnContours: document.getElementById('btnContours'),
+    btnField: document.getElementById('btnField')
+  };
+
+  const state = {
+    eps: 1.0,
+    theta: 0,
+    omega: W0 * Math.sqrt(2),
+    speed: 1,
+    playing: true,
+    t: 0,
+    trail: []
+  };
+
+  const view = { contours: true, field: true };
+  const geom = { x0: 0, xa: 0, y0: 0, ya: 0 };
+  let phaseW = 0, phaseH = 0, phaseDPR = 1;
+  let miniW = 0, miniH = 0;
+
+  function clamp(v, a, b) {
+    return v < a ? a : v > b ? b : v;
+  }
+
+  function hexToRgba(hex, a) {
+    const n = parseInt(hex.slice(1), 16);
+    const r = (n >> 16) & 255;
+    const g = (n >> 8) & 255;
+    const b = n & 255;
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+  }
+
+  function potential(th) {
+    return 1 - Math.cos(th);
+  }
+
+  function wrapAngle(a) {
+    a = (a + Math.PI) % (2 * Math.PI);
+    if (a < 0) a += 2 * Math.PI;
+    return a - Math.PI;
+  }
+
+  function orbitColor() {
+    if (Math.abs(state.eps - 2) < 1e-6) return C_SEP;
+    return state.eps < 2 ? C_LIB : C_ROT;
+  }
+
+  function ellipK(k) {
+    if (!(k < 1)) return Infinity;
+    let a = 1;
+    let b = Math.sqrt(Math.max(0, 1 - k * k));
+    for (let i = 0; i < 24; i++) {
+      const na = 0.5 * (a + b);
+      b = Math.sqrt(a * b);
+      a = na;
+    }
+    return Math.PI / (2 * a);
+  }
+
+  function regimeInfo() {
+    if (state.eps <= 1e-9) {
+      return {
+        name: '静止',
+        color: '#64748b',
+        note: 'ε = 0：相空间退化为一个点',
+        desc: '能量为零，摆球静止在最低点；相空间里只剩一个点。'
+      };
+    }
+    if (Math.abs(state.eps - 2) < 1e-6) {
+      return {
+        name: '分界',
+        color: C_SEP,
+        note: 'ε = 2：分界线，周期趋于无穷',
+        desc: '能量恰好等于分界线。摆球以无限长的时间趋近最高点，周期发散。'
+      };
+    }
+    if (state.eps < 2) {
+      if (2 - state.eps < 0.03) {
+        return {
+          name: '近分界摆动',
+          color: C_LIB,
+          note: 'ε < 2：接近分界线，周期明显变长',
+          desc: '非常接近分界线：摆球几乎能到达最高点，通过时速度极慢，周期明显变长。'
+        };
+      }
+      return {
+        name: '摆动',
+        color: C_LIB,
+        note: 'ε < 2：闭合轨道',
+        desc: '能量不足以越过最高点。摆球在 ±θmax 之间往复，相轨道是闭合曲线。'
+      };
+    }
+    if (state.eps - 2 < 0.03) {
+      return {
+        name: '近分界旋转',
+        color: C_ROT,
+        note: 'ε > 2：刚刚越过势垒，转一圈很慢',
+        desc: '略高于分界线：摆球能越过最高点，但通过时速度很小，转一圈耗时很长。'
+      };
+    }
+    return {
+      name: '旋转',
+      color: C_ROT,
+      note: 'ε > 2：开放轨道',
+      desc: '能量高于势垒。摆球持续同向旋转，相轨道不再闭合。'
+    };
+  }
+
+  function fmtDeg(rad, signed) {
+    let d = rad * 180 / Math.PI;
+    if (Math.abs(d) < 0.05) d = 0;
+    const s = d.toFixed(1) + '°';
+    return signed && d >= 0 ? '+' + s : s;
+  }
+
+  function updateEnergyUI() {
+    const info = regimeInfo();
+    const color = orbitColor();
+    const E = state.eps * MASS * G * L;
+    const vmax = L * W0 * Math.sqrt(2 * state.eps);
+
+    el.vEps.textContent = state.eps.toFixed(2);
+    el.vEps.style.color = color;
+    el.hE.textContent = 'E = ' + E.toFixed(2) + ' J · ω₀ = ' + W0.toFixed(2) + ' rad/s';
+    el.phaseNote.textContent = info.note;
+    el.swOrbit.style.borderTopColor = color;
+    el.miniAngle.style.color = color;
+
+    el.roRegime.textContent = info.name;
+    el.roRegime.style.color = info.color;
+    el.roE.innerHTML = E.toFixed(2) + ' <span>J</span>';
+    el.roVmax.innerHTML = vmax.toFixed(2) + ' <span>m/s</span>';
+
+    if (state.eps > 1e-9 && state.eps < 2) {
+      const thMax = Math.acos(clamp(1 - state.eps, -1, 1));
+      el.roTurn.textContent = '±' + fmtDeg(thMax, false);
+    } else {
+      el.roTurn.textContent = '—';
+    }
+
+    if (state.eps <= 1e-9) {
+      el.roPeriod.innerHTML = '—';
+    } else if (Math.abs(state.eps - 2) < 1e-6) {
+      el.roPeriod.innerHTML = '∞';
+    } else if (state.eps < 2) {
+      const T = 4 * ellipK(Math.sqrt(state.eps / 2)) / W0;
+      el.roPeriod.innerHTML = T.toFixed(2) + ' <span>s</span>';
+    } else {
+      const T = 4 * ellipK(Math.sqrt(2 / state.eps)) / (W0 * Math.sqrt(2 * state.eps));
+      el.roPeriod.innerHTML = T.toFixed(2) + ' <span>s</span>';
+    }
+
+    el.desc.textContent = info.desc;
+
+    document.querySelectorAll('[data-eps]').forEach(function (btn) {
+      btn.classList.toggle('active', Math.abs(parseFloat(btn.dataset.eps) - state.eps) < 1e-6);
+    });
+  }
+
+  function updateLiveUI() {
+    const v = L * Math.abs(state.omega);
+    el.roTheta.textContent = fmtDeg(state.theta, true);
+    el.roOmega.innerHTML = state.omega.toFixed(2) + ' <span>rad/s</span>';
+    el.roV.innerHTML = v.toFixed(2) + ' <span>m/s</span>';
+    el.miniAngle.textContent = 'θ = ' + fmtDeg(state.theta, true);
+  }
+
+  function setEnergy(value) {
+    const eps = clamp(value, 0, EPS_MAX);
+    state.eps = eps;
+
+    const q = 2 * (eps - potential(state.theta));
+    if (q < 1e-10) {
+      if (eps < 2) {
+        const thMax = Math.acos(clamp(1 - eps, -1, 1));
+        state.theta = state.theta >= 0 ? thMax : -thMax;
+      }
+      state.omega = 0;
+    } else {
+      let sign;
+      if (Math.abs(state.omega) > 1e-9) {
+        sign = state.omega > 0 ? 1 : -1;
+      } else if (Math.abs(Math.sin(state.theta)) > 1e-9) {
+        sign = -Math.sign(Math.sin(state.theta));
+      } else {
+        sign = 1;
+      }
+      state.omega = sign * W0 * Math.sqrt(q);
+    }
+
+    state.t = 0;
+    state.trail.length = 0;
+    updateEnergyUI();
+    updateLiveUI();
+  }
+
+  function restart() {
+    state.eps = 1.0;
+    state.theta = 0;
+    state.omega = W0 * Math.sqrt(2);
+    state.t = 0;
+    state.trail.length = 0;
+    state.playing = true;
+    el.energy.value = '1';
+    el.toggle.textContent = '暂停';
+    el.toggle.classList.add('primary');
+    updateEnergyUI();
+    updateLiveUI();
+  }
+
+  function accel(th) {
+    return -(G / L) * Math.sin(th);
+  }
+
+  function rk4(h) {
+    const th = state.theta;
+    const om = state.omega;
+
+    const a1 = accel(th);
+    const th2 = th + 0.5 * h * om;
+    const om2 = om + 0.5 * h * a1;
+    const a2 = accel(th2);
+    const th3 = th + 0.5 * h * om2;
+    const om3 = om + 0.5 * h * a2;
+    const a3 = accel(th3);
+    const th4 = th + h * om3;
+    const om4 = om + h * a3;
+    const a4 = accel(th4);
+
+    state.theta = wrapAngle(th + h / 6 * (om + 2 * om2 + 2 * om3 + om4));
+    state.omega = om + h / 6 * (a1 + 2 * a2 + 2 * a3 + a4);
+    state.t += h;
+  }
+
+  function advance(sim) {
+    const n = Math.max(1, Math.ceil(sim / 0.0015));
+    const h = sim / n;
+    let wrapped = false;
+
+    for (let i = 0; i < n; i++) {
+      const before = state.theta;
+      rk4(h);
+      if (Math.abs(state.theta - before) > Math.PI) wrapped = true;
+    }
+
+    if (wrapped) state.trail.push({ brk: true });
+    state.trail.push({ th: state.theta, u: state.omega / W0 });
+    if (state.trail.length > 260) {
+      state.trail.splice(0, state.trail.length - 260);
+    }
+  }
+
+  function fitCanvas(cv, ctx) {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const r = cv.getBoundingClientRect();
+    const w = Math.max(1, r.width);
+    const h = Math.max(1, r.height);
+    const pw = Math.round(w * dpr);
+    const ph = Math.round(h * dpr);
+    let resized = false;
+    if (cv.width !== pw || cv.height !== ph) {
+      cv.width = pw;
+      cv.height = ph;
+      resized = true;
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { w: w, h: h, dpr: dpr, resized: resized };
+  }
+
+  function xOf(th) {
+    return geom.x0 + (th + Math.PI) / (2 * Math.PI) * (geom.xa - geom.x0);
+  }
+
+  function yOf(u) {
+    return geom.y0 + (U_MAX - u) / (2 * U_MAX) * (geom.ya - geom.y0);
+  }
+
+  function pathEnergy(ctx, eps, sign, N) {
+    if (eps <= 1e-12) return false;
+    ctx.beginPath();
+    let drawing = false;
+    let found = false;
+    for (let i = 0; i <= N; i++) {
+      const th = -Math.PI + 2 * Math.PI * i / N;
+      const q = 2 * (eps - 1 + Math.cos(th));
+      if (q < -1e-10) {
+        drawing = false;
+        continue;
+      }
+      const u = sign * Math.sqrt(Math.max(0, q));
+      const x = xOf(th);
+      const y = yOf(u);
+      if (!drawing) {
+        ctx.moveTo(x, y);
+        drawing = true;
+        found = true;
+      } else {
+        ctx.lineTo(x, y);
+      }
+    }
+    return found;
+  }
+
+  function shadeDirection(ctx, x, y, dx, dy, len) {
+    const mag = Math.hypot(dx, dy);
+    if (mag < 1e-9) return;
+    const ux = dx / mag;
+    const uy = dy / mag;
+    const x1 = x - ux * len * 0.5;
+    const y1 = y - uy * len * 0.5;
+    const x2 = x + ux * len * 0.5;
+    const y2 = y + uy * len * 0.5;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    const a = 0.42 * len;
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - ux * a - uy * a * 0.55, y2 - uy * a + ux * a * 0.55);
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - ux * a + uy * a * 0.55, y2 - uy * a - ux * a * 0.55);
+    ctx.stroke();
+  }
+
+  function paintStatic() {
+    if (phaseW < 120 || phaseH < 100) return;
+
+    bg.width = Math.round(phaseW * phaseDPR);
+    bg.height = Math.round(phaseH * phaseDPR);
+    bgctx.setTransform(phaseDPR, 0, 0, phaseDPR, 0, 0);
+    bgctx.clearRect(0, 0, phaseW, phaseH);
+    bgctx.fillStyle = '#ffffff';
+    bgctx.fillRect(0, 0, phaseW, phaseH);
+
+    const padL = 54, padR = 22, padT = 28, padB = 34;
+    geom.x0 = padL;
+    geom.xa = phaseW - padR;
+    geom.y0 = padT;
+    geom.ya = phaseH - padB;
+
+    bgctx.save();
+    bgctx.beginPath();
+    bgctx.rect(geom.x0, geom.y0, geom.xa - geom.x0, geom.ya - geom.y0);
+    bgctx.clip();
+
+    bgctx.lineWidth = 1;
+    bgctx.strokeStyle = 'rgba(148,163,184,0.20)';
+    const xTicks = [-Math.PI, -Math.PI / 2, 0, Math.PI / 2, Math.PI];
+    for (let i = 0; i < xTicks.length; i++) {
+      const x = xOf(xTicks[i]);
+      bgctx.beginPath();
+      bgctx.moveTo(x, geom.y0);
+      bgctx.lineTo(x, geom.ya);
+      bgctx.stroke();
+    }
+    for (let u = -3; u <= 3; u++) {
+      const y = yOf(u);
+      bgctx.beginPath();
+      bgctx.moveTo(geom.x0, y);
+      bgctx.lineTo(geom.xa, y);
+      bgctx.stroke();
+    }
+
+    bgctx.setLineDash([4, 5]);
+    bgctx.strokeStyle = 'rgba(100,116,139,0.38)';
+    bgctx.beginPath();
+    bgctx.moveTo(xOf(0), geom.y0);
+    bgctx.lineTo(xOf(0), geom.ya);
+    bgctx.moveTo(geom.x0, yOf(0));
+    bgctx.lineTo(geom.xa, yOf(0));
+    bgctx.stroke();
+    bgctx.setLineDash([]);
+
+    if (view.field) {
+      bgctx.strokeStyle = 'rgba(100,116,139,0.25)';
+      bgctx.lineWidth = 1.1;
+      const stepX = Math.max(52, (geom.xa - geom.x0) / 11);
+      const stepY = Math.max(46, (geom.ya - geom.y0) / 8);
+      const dth = 0.16;
+      for (let x = geom.x0 + stepX * 0.55; x < geom.xa; x += stepX) {
+        for (let y = geom.y0 + stepY * 0.55; y < geom.ya; y += stepY) {
+          const th = -Math.PI + (x - geom.x0) / (geom.xa - geom.x0) * 2 * Math.PI;
+          const u = U_MAX - (y - geom.y0) / (geom.ya - geom.y0) * 2 * U_MAX;
+          const ex = xOf(th + u * dth) - x;
+          const ey = yOf(u - Math.sin(th) * dth) - y;
+          shadeDirection(bgctx, x, y, ex, ey, 8);
+        }
+      }
+    }
+
+    if (view.contours) {
+      bgctx.strokeStyle = 'rgba(148,163,184,0.38)';
+      bgctx.lineWidth = 1.1;
+      bgctx.lineJoin = 'round';
+      bgctx.lineCap = 'round';
+      for (let i = 0; i < REF_LEVELS.length; i++) {
+        const e = REF_LEVELS[i];
+        for (let s = -1; s <= 1; s += 2) {
+          if (pathEnergy(bgctx, e, s, 600)) bgctx.stroke();
+        }
+      }
+    }
+
+    bgctx.strokeStyle = C_SEP;
+    bgctx.lineWidth = 1.6;
+    bgctx.setLineDash([6, 5]);
+    bgctx.lineJoin = 'round';
+    for (let s = -1; s <= 1; s += 2) {
+      if (pathEnergy(bgctx, 2, s, 700)) bgctx.stroke();
+    }
+    bgctx.setLineDash([]);
+
+    bgctx.fillStyle = C_SEP;
+    const saddles = [-Math.PI, Math.PI];
+    for (let i = 0; i < saddles.length; i++) {
+      bgctx.beginPath();
+      bgctx.arc(xOf(saddles[i]), yOf(0), 3.2, 0, Math.PI * 2);
+      bgctx.fill();
+    }
+
+    bgctx.font = '11px ui-monospace, SFMono-Regular, Menlo, monospace';
+    bgctx.textAlign = 'center';
+    bgctx.textBaseline = 'middle';
+    bgctx.fillStyle = 'rgba(100,116,139,0.46)';
+    bgctx.fillText('摆动区', xOf(-0.60 * Math.PI), yOf(0.72));
+    bgctx.fillText('旋转区', xOf(-0.60 * Math.PI), yOf(2.55));
+    bgctx.fillText('旋转区', xOf(-0.60 * Math.PI), yOf(-2.55));
+    bgctx.fillStyle = 'rgba(234,88,12,0.78)';
+    bgctx.font = '10.5px ui-monospace, SFMono-Regular, Menlo, monospace';
+    bgctx.textAlign = 'right';
+    bgctx.fillText('分界点', xOf(Math.PI) - 8, yOf(0) - 12);
+
+    bgctx.restore();
+
+    bgctx.strokeStyle = 'rgba(148,163,184,0.40)';
+    bgctx.lineWidth = 1;
+    bgctx.strokeRect(geom.x0, geom.y0, geom.xa - geom.x0, geom.ya - geom.y0);
+
+    bgctx.font = '10.5px ui-monospace, SFMono-Regular, Menlo, monospace';
+    bgctx.fillStyle = '#a2adbd';
+    bgctx.textAlign = 'center';
+    bgctx.textBaseline = 'top';
+    const xLabels = ['−π', '−π/2', '0', 'π/2', 'π'];
+    for (let i = 0; i < xTicks.length; i++) {
+      bgctx.fillText(xLabels[i], xOf(xTicks[i]), geom.ya + 7);
+    }
+
+    bgctx.textAlign = 'right';
+    bgctx.textBaseline = 'middle';
+    for (let u = -3; u <= 3; u++) {
+      bgctx.fillText(String(u), geom.x0 - 8, yOf(u));
+    }
+
+    bgctx.textAlign = 'left';
+    bgctx.textBaseline = 'bottom';
+    bgctx.fillText('ω/ω₀', geom.x0, geom.y0 - 7);
+    bgctx.textAlign = 'right';
+    bgctx.textBaseline = 'top';
+    bgctx.fillText('θ', geom.xa, geom.ya + 20);
+  }
+
+  function drawTrail(ctx, color) {
+    const pts = state.trail;
+    if (pts.length < 2) return;
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 2.1;
+    ctx.strokeStyle = color;
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1];
+      const b = pts[i];
+      if (a.brk || b.brk) continue;
+      const f = i / (pts.length - 1);
+      ctx.globalAlpha = 0.06 + 0.86 * f * f;
+      ctx.beginPath();
+      ctx.moveTo(xOf(a.th), yOf(a.u));
+      ctx.lineTo(xOf(b.th), yOf(b.u));
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawPhase() {
+    const fit = fitCanvas(phase, pctx);
+    if (fit.resized || fit.w !== phaseW || fit.h !== phaseH) {
+      phaseW = fit.w;
+      phaseH = fit.h;
+      phaseDPR = fit.dpr;
+      paintStatic();
+    }
+
+    pctx.clearRect(0, 0, phaseW, phaseH);
+    if (phaseW < 120 || phaseH < 100) return;
+    pctx.drawImage(bg, 0, 0, phaseW, phaseH);
+
+    const color = orbitColor();
+
+    pctx.save();
+    pctx.beginPath();
+    pctx.rect(geom.x0, geom.y0, geom.xa - geom.x0, geom.ya - geom.y0);
+    pctx.clip();
+
+    if (state.eps > 1e-12) {
+      pctx.strokeStyle = color;
+      pctx.lineWidth = 2;
+      pctx.lineJoin = 'round';
+      pctx.lineCap = 'round';
+      if (Math.abs(state.eps - 2) < 1e-6) pctx.setLineDash([7, 5]);
+      for (let s = -1; s <= 1; s += 2) {
+        if (pathEnergy(pctx, state.eps, s, 700)) pctx.stroke();
+      }
+      pctx.setLineDash([]);
+    }
+
+    drawTrail(pctx, color);
+
+    const mx = xOf(state.theta);
+    const my = yOf(state.omega / W0);
+    const glow = pctx.createRadialGradient(mx, my, 0, mx, my, 17);
+    glow.addColorStop(0, hexToRgba(color, 0.30));
+    glow.addColorStop(1, hexToRgba(color, 0));
+    pctx.fillStyle = glow;
+    pctx.beginPath();
+    pctx.arc(mx, my, 17, 0, Math.PI * 2);
+    pctx.fill();
+
+    pctx.beginPath();
+    pctx.arc(mx, my, 5.6, 0, Math.PI * 2);
+    pctx.fillStyle = '#ffffff';
+    pctx.fill();
+    pctx.lineWidth = 2.2;
+    pctx.strokeStyle = color;
+    pctx.stroke();
+
+    pctx.restore();
+
+    pctx.save();
+    pctx.font = '10.5px ui-monospace, SFMono-Regular, Menlo, monospace';
+    pctx.fillStyle = '#94a3b8';
+    pctx.textAlign = 'left';
+    pctx.textBaseline = 'top';
+    pctx.fillText('t = ' + state.t.toFixed(2) + ' s', geom.x0 + 3, geom.y0 + 5);
+    pctx.textAlign = 'right';
+    pctx.fillText('ε = ' + state.eps.toFixed(2), geom.xa - 3, geom.y0 + 5);
+    pctx.restore();
+  }
+
+  function drawMini() {
+    const fit = fitCanvas(mini, mctx);
+    miniW = fit.w;
+    miniH = fit.h;
+    mctx.clearRect(0, 0, miniW, miniH);
+    if (miniW < 60 || miniH < 60) return;
+
+    const color = orbitColor();
+    const cx = miniW / 2;
+    const pivotY = Math.max(48, miniH * 0.43);
+    const rod = Math.min(miniW * 0.24, miniH * 0.33, 48);
+    const bx = cx + rod * Math.sin(state.theta);
+    const by = pivotY + rod * Math.cos(state.theta);
+
+    mctx.save();
+    mctx.strokeStyle = 'rgba(148,163,184,0.22)';
+    mctx.lineWidth = 1;
+    mctx.setLineDash([3, 5]);
+    mctx.beginPath();
+    mctx.arc(cx, pivotY, rod, 0, Math.PI * 2);
+    mctx.stroke();
+
+    mctx.strokeStyle = 'rgba(148,163,184,0.35)';
+    mctx.beginPath();
+    mctx.moveTo(cx, pivotY);
+    mctx.lineTo(cx, pivotY + rod);
+    mctx.stroke();
+    mctx.setLineDash([]);
+
+    const arcR = Math.min(30, rod * 0.66);
+    mctx.beginPath();
+    mctx.arc(cx, pivotY, arcR, Math.PI / 2, Math.PI / 2 - state.theta, state.theta > 0);
+    mctx.strokeStyle = color;
+    mctx.globalAlpha = 0.55;
+    mctx.lineWidth = 1.5;
+    mctx.stroke();
+    mctx.globalAlpha = 1;
+
+    const grad = mctx.createLinearGradient(cx, pivotY, bx, by);
+    grad.addColorStop(0, 'rgba(100,116,139,0.55)');
+    grad.addColorStop(1, color);
+    mctx.beginPath();
+    mctx.moveTo(cx, pivotY);
+    mctx.lineTo(bx, by);
+    mctx.strokeStyle = grad;
+    mctx.lineWidth = 2.4;
+    mctx.lineCap = 'round';
+    mctx.stroke();
+
+    const halo = mctx.createRadialGradient(bx, by, 0, bx, by, 18);
+    halo.addColorStop(0, hexToRgba(color, 0.26));
+    halo.addColorStop(1, hexToRgba(color, 0));
+    mctx.fillStyle = halo;
+    mctx.beginPath();
+    mctx.arc(bx, by, 18, 0, Math.PI * 2);
+    mctx.fill();
+
+    const ball = mctx.createRadialGradient(bx - 3, by - 4, 0.5, bx, by, 10);
+    ball.addColorStop(0, 'rgba(255,255,255,0.88)');
+    ball.addColorStop(0.42, 'rgba(255,255,255,0.10)');
+    ball.addColorStop(1, 'rgba(0,0,0,0.18)');
+    mctx.beginPath();
+    mctx.fillStyle = color;
+    mctx.arc(bx, by, 10, 0, Math.PI * 2);
+    mctx.fill();
+    mctx.fillStyle = ball;
+    mctx.beginPath();
+    mctx.arc(bx, by, 10, 0, Math.PI * 2);
+    mctx.fill();
+
+    mctx.beginPath();
+    mctx.fillStyle = '#334155';
+    mctx.arc(cx, pivotY, 4.5, 0, Math.PI * 2);
+    mctx.fill();
+    mctx.beginPath();
+    mctx.fillStyle = '#f8fafc';
+    mctx.arc(cx - 0.8, pivotY - 0.8, 1.6, 0, Math.PI * 2);
+    mctx.fill();
+
+    mctx.fillStyle = color;
+    mctx.globalAlpha = 0.78;
+    mctx.font = '11px ui-monospace, SFMono-Regular, Menlo, monospace';
+    mctx.textAlign = 'center';
+    mctx.textBaseline = 'middle';
+    const mid = Math.PI / 2 - state.theta / 2;
+    mctx.fillText('θ', cx + (arcR + 12) * Math.cos(mid), pivotY + (arcR + 12) * Math.sin(mid));
+    mctx.restore();
+  }
+
+  function syncToggles() {
+    el.btnContours.classList.toggle('active', view.contours);
+    el.btnContours.setAttribute('aria-pressed', String(view.contours));
+    el.btnField.classList.toggle('active', view.field);
+    el.btnField.setAttribute('aria-pressed', String(view.field));
+  }
+
+  let last = performance.now();
+
+  function loop(now) {
+    let dt = (now - last) / 1000;
+    last = now;
+    if (!(dt > 0)) dt = 0;
+    if (dt > 0.05) dt = 0.05;
+
+    if (state.playing && dt > 0) {
+      advance(dt * state.speed);
+    }
+
+    drawPhase();
+    drawMini();
+    updateLiveUI();
+    requestAnimationFrame(loop);
+  }
+
+  el.energy.addEventListener('input', function () {
+    setEnergy(parseFloat(this.value));
+  });
+
+  el.speed.addEventListener('input', function () {
+    state.speed = parseFloat(this.value);
+    el.vSpeed.textContent = state.speed.toFixed(1) + '×';
+  });
+
+  document.querySelectorAll('[data-eps]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const eps = parseFloat(btn.dataset.eps);
+      state.theta = 0;
+      state.omega = W0 * Math.sqrt(2 * eps);
+      state.t = 0;
+      state.trail.length = 0;
+      el.energy.value = String(eps);
+      setEnergy(eps);
+    });
+  });
+
+  el.btnContours.addEventListener('click', function () {
+    view.contours = !view.contours;
+    syncToggles();
+    paintStatic();
+  });
+
+  el.btnField.addEventListener('click', function () {
+    view.field = !view.field;
+    syncToggles();
+    paintStatic();
+  });
+
+  el.toggle.addEventListener('click', function () {
+    state.playing = !state.playing;
+    el.toggle.textContent = state.playing ? '暂停' : '继续';
+    el.toggle.classList.toggle('primary', state.playing);
+    last = performance.now();
+  });
+
+  el.reset.addEventListener('click', function () {
+    restart();
+    last = performance.now();
+  });
+
+  window.addEventListener('keydown', function (e) {
+    if (e.code === 'Space' && e.target === document.body) {
+      e.preventDefault();
+      el.toggle.click();
+    }
+  });
+
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(function () {
+      drawPhase();
+      drawMini();
+    });
+    ro.observe(phase);
+    ro.observe(mini);
+  } else {
+    window.addEventListener('resize', function () {
+      drawPhase();
+      drawMini();
+    });
+  }
+
+  updateEnergyUI();
+  updateLiveUI();
+  syncToggles();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

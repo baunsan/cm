@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>最速降线 · 摆线演示</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    margin: 0; padding: 18px 22px 22px;
+    background: #f5f6f8; color: #222;
+    display: flex; flex-direction: column;
+  }
+  header { max-width: 1240px; width: 100%; margin: 0 auto 12px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #666; font-size: 13px; line-height: 1.7; }
+  .sub code {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12.5px; color: #1e3a8a;
+    background: #eef2f9; border: 1px solid #dde5f1;
+    padding: 1px 6px; border-radius: 5px;
+  }
+  .wrap {
+    max-width: 1240px; width: 100%; margin: 0 auto;
+    flex: 1; min-height: 0; display: flex; gap: 18px;
+  }
+  .left { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+  .card {
+    background: #fff; border: 1px solid #d0d4da; border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.06);
+  }
+  #stageCard {
+    flex: 1; min-height: 390px; display: flex; flex-direction: column;
+    padding: 10px 14px 12px;
+  }
+  .mini-row { flex: 0 0 auto; display: flex; gap: 14px; height: 196px; }
+  .mini-row .card {
+    flex: 1 1 0; min-width: 0; height: 100%;
+    display: flex; flex-direction: column; padding: 9px 14px 9px;
+  }
+  .canvas-wrap { position: relative; flex: 1; min-height: 0; display: flex; }
+  #stage, #tauto, #gen { flex: 1; width: 100%; min-height: 0; display: block; }
+  .canvas-btn {
+    position: absolute; top: 10px; right: 14px; z-index: 2;
+    flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 10px; border-radius: 999px;
+    border: 1px solid #e2e8f0; background: rgba(255,255,255,.94);
+    color: #64748b; font-size: 11.5px; line-height: 1.2;
+    cursor: pointer; user-select: none; white-space: nowrap;
+    box-shadow: 0 1px 4px rgba(15,23,42,.08);
+    transition: background .15s, border-color .15s, color .15s;
+  }
+  .canvas-btn .sw { width: 14px; border-top: 2px solid #94a3b8; }
+  .canvas-btn:hover { background: #f8fafc; }
+  .canvas-btn.active {
+    background: #fef2f2; border-color: #fecaca; color: #dc2626;
+  }
+  .canvas-btn.active .sw { border-top: 2px solid #dc2626; }
+  .canvas-btn:not(.active) .sw { border-top-color: #94a3b8; }
+  .canvas-btn.active:hover { background: #fee2e2; }
+  .plot-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 2px 7px; font-size: 12px; color: #64748b; gap: 12px;
+  }
+  .plot-head > span:first-child {
+    display: flex; align-items: baseline; gap: 8px;
+    min-width: 0; white-space: nowrap;
+  }
+  .plot-head b { color: #334155; font-weight: 600; }
+  .plot-head em {
+    font-style: normal; color: #94a3b8; font-size: 11px;
+    font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis;
+  }
+  .note-mini {
+    color: #94a3b8; font-size: 11px; white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .legend { display: flex; align-items: center; gap: 12px; font-size: 11px; color: #64748b; }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+  .sw { display: inline-block; width: 16px; height: 0; vertical-align: 3px; }
+  .sw.blue { border-top: 2px solid #2563eb; }
+  .sw.amber { border-top: 2px solid #d97706; }
+  .sw.gray { border-top: 1.5px dashed #94a3b8; }
+  .sw.slate { border-top: 2px solid #64748b; }
+  .sw.dark { border-top: 2px solid #334155; }
+  .sw.red { border-top: 2px solid #dc2626; }
+
+  aside {
+    width: 330px; flex: 0 0 330px;
+    background: #fff; border: 1px solid #d0d4da; border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.06);
+    padding: 16px 18px; overflow-y: auto;
+  }
+  aside h2 { font-size: 14px; margin: 0 0 9px; letter-spacing: .3px; }
+  aside h2:not(:first-child) { margin-top: 13px; }
+  .row { margin-bottom: 9px; }
+  .dis { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; margin-bottom: 2px; }
+  .dis .val { font-variant-numeric: tabular-nums; color: #2563eb; font-weight: 600; font-size: 12.5px; }
+  .dis .val.amber { color: #d97706; }
+  input[type=range] { width: 100%; accent-color: #2563eb; }
+  .rangenote { font-size: 10.5px; color: #94a3b8; line-height: 1.55; margin-top: 5px; font-variant-numeric: tabular-nums; }
+  .buttons { display: flex; gap: 8px; }
+  button {
+    flex: 1; padding: 7px 0; border: 1px solid #cbd2dc; border-radius: 8px;
+    background: #fff; font-size: 12.5px; cursor: pointer; color: #222;
+    transition: background .15s, border-color .15s;
+  }
+  button:hover { background: #eef2f7; }
+  button.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+  button.primary:hover { background: #1d4ed8; }
+  button:active { transform: translateY(1px); }
+
+  .toggles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+  .tg {
+    display: flex; align-items: center; justify-content: flex-start; gap: 6px;
+    padding: 6px 9px; border: 1px solid #cbd2dc; border-radius: 8px;
+    background: #fff; color: #94a3b8; font-size: 11.5px; line-height: 1.2;
+    cursor: pointer; user-select: none; white-space: nowrap;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .tg .sw { width: 14px; }
+  .tg:hover { background: #f1f5f9; }
+  .tg.active { background: #eff6ff; border-color: #bfdbfe; color: #2563eb; }
+  .tg.active:hover { background: #e3efff; }
+
+  .times { display: flex; flex-direction: column; }
+  .trow {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 1px; font-size: 12px; color: #475569;
+    border-bottom: 1px dashed #eef1f5;
+  }
+  .trow:last-child { border-bottom: 0; }
+  .trow .dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+  .dot.blue { background: #2563eb; }
+  .dot.amber { background: #d97706; }
+  .dot.gray { background: #94a3b8; }
+  .trow b {
+    margin-left: auto; color: #0f172a; font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .params {
+    margin-top: 7px; padding: 6px 8px; border-radius: 6px;
+    background: #f7f9fc; border: 1px solid #e8ebf0;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 10.5px; color: #64748b; text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .stat {
+    background: #f7f9fc; border: 1px solid #e3e8ef; border-radius: 8px;
+    padding: 7px 9px; font-size: 11px; color: #6b7280;
+  }
+  .stat b { display: block; font-size: 15px; color: #0f172a; font-variant-numeric: tabular-nums; }
+  .stat b span { font-size: 11px; font-weight: 500; color: #94a3b8; }
+  .limitnote {
+    display: none; margin-top: 9px; padding: 7px 9px; border-radius: 7px;
+    background: #fffbeb; border: 1px solid #fde68a;
+    color: #92400e; font-size: 11px; line-height: 1.6;
+  }
+  .limitnote.show { display: block; }
+
+  .eq {
+    margin-top: 10px; padding: 9px 11px; border-radius: 8px;
+    background: #f7f9fc; border: 1px solid #e8ebf0;
+    font-size: 11.5px; color: #475569; line-height: 1.8;
+  }
+  .eq b { color: #334155; font-weight: 600; }
+  .eq code { font-family: ui-monospace, "SF Mono", Menlo, monospace; color: #1e3a8a; font-size: 11px; }
+  .hint { font-size: 11px; color: #94a3b8; line-height: 1.65; margin: 8px 0 0; }
+
+  @media (max-width: 1180px) {
+    .mini-row .plot-head em { display: none; }
+  }
+
+  @media (max-width: 980px) {
+    body { padding: 14px; height: auto; min-height: 100%; overflow-y: auto; }
+    .wrap { flex-direction: column; }
+    .left { flex: 0 0 auto; }
+    .left, aside { width: 100%; min-width: 0; }
+    #stageCard { height: 440px; min-height: 0; flex: 0 0 auto; }
+    .mini-row { flex-direction: column; height: auto; }
+    .mini-row .card { flex: 0 0 auto; height: 180px; }
+    aside { flex: 0 0 auto; overflow: visible; }
+    .legend .note-mini { display: none; }
+  }
+
+  @media (max-width: 640px) {
+    #stageCard { height: 340px; }
+    .legend { display: none; }
+    .mini-row .plot-head em { display: none; }
+    .plot-head > span:first-child { white-space: normal; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>最速降线 · 摆线</h1>
+    <div class="sub">
+      质点从 A 点静止出发，在重力作用下无摩擦滑到 B 点，用时最短的轨道是摆线。
+      <code>v = √(2gy)</code>
+      <code>T = ∫ ds / v</code>
+      &nbsp;改变终点 B 与圆弧半径，比较直线、圆弧与摆线。
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="left">
+      <div class="card" id="stageCard">
+        <div class="plot-head">
+          <span><b>同场竞速</b><em id="raceNote">t = 0.00 s</em></span>
+          <div class="legend">
+            <span><i class="sw blue"></i>摆线</span>
+            <span><i class="sw amber"></i>圆弧</span>
+            <span><i class="sw gray"></i>直线</span>
+          </div>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="stage"></canvas>
+          <button id="velBtn" class="canvas-btn active" type="button" aria-pressed="true"><i class="sw red"></i>速度矢量</button>
+        </div>
+      </div>
+
+      <div class="mini-row">
+        <div class="card" id="tautoCard">
+          <div class="plot-head">
+            <span><b>等时性 · 摆线</b><em>不同高度同时到达</em></span>
+            <span class="note-mini" id="tautoNote">t = 0.00 s / T = 1.004 s</span>
+          </div>
+          <canvas id="tauto"></canvas>
+        </div>
+
+        <div class="card" id="genCard">
+          <div class="plot-head">
+            <span><b>摆线的生成</b><em>滚动圆</em></span>
+            <span class="note-mini" id="genNote">R = 2.07 m</span>
+          </div>
+          <canvas id="gen"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <aside>
+      <h2>终点 B</h2>
+      <div class="row">
+        <div class="dis"><label for="xb">水平距离 x<sub>B</sub></label><span class="val" id="v-xb">8.0 m</span></div>
+        <input type="range" id="xb" min="2" max="10" step="0.1" value="8">
+      </div>
+      <div class="row">
+        <div class="dis"><label for="yb">下落高度 y<sub>B</sub></label><span class="val" id="v-yb">4.0 m</span></div>
+        <input type="range" id="yb" min="0" max="10" step="0.1" value="4">
+      </div>
+
+      <h2>圆弧轨道</h2>
+      <div class="row">
+        <div class="dis"><label for="rc">圆弧半径 R<sub>c</sub></label><span class="val amber" id="v-rc">5.00 m</span></div>
+        <input type="range" id="rc" min="0" max="1000" step="1" value="0">
+        <div class="rangenote" id="rcNote">R₀ = — m</div>
+      </div>
+
+      <h2>播放</h2>
+      <div class="row">
+        <div class="dis"><label for="speed">动画速度</label><span class="val" id="v-speed">1.0×</span></div>
+        <input type="range" id="speed" min="0.1" max="5" step="0.1" value="1">
+      </div>
+      <div class="buttons">
+        <button id="playBtn" class="primary" type="button">暂停</button>
+        <button id="resetBtn" type="button">重置</button>
+      </div>
+
+      <h2>显示</h2>
+      <div class="toggles">
+        <button class="tg active" data-key="straight" type="button" aria-pressed="true"><i class="sw gray"></i>直线</button>
+        <button class="tg active" data-key="circle" type="button" aria-pressed="true"><i class="sw amber"></i>圆弧</button>
+        <button class="tg active" data-key="cycloid" type="button" aria-pressed="true"><i class="sw blue"></i>摆线</button>
+      </div>
+
+      <h2>行程时间</h2>
+      <div class="times">
+        <div class="trow"><i class="dot blue"></i><span>摆线</span><b id="t-cyc">—</b></div>
+        <div class="trow"><i class="dot amber"></i><span>圆弧</span><b id="t-circ">—</b></div>
+        <div class="trow"><i class="dot gray"></i><span>直线</span><b id="t-str">—</b></div>
+      </div>
+      <div class="params" id="params">θ_B = — · R = —</div>
+      <div class="stats">
+        <div class="stat"><span>摆线用时</span><b id="st-tc">—</b></div>
+        <div class="stat"><span>相对直线节省</span><b id="st-save">—</b></div>
+      </div>
+      <div class="limitnote" id="limitNote"></div>
+
+      <div class="eq">
+        <b>能量</b> <code>v = √(2gy)</code><br>
+        <b>泛函</b> <code>T = ∫ √((1+y′²)/(2gy)) dx</code><br>
+        <b>摆线</b> <code>x = R(θ − sinθ)</code>，<code>y = R(1 − cosθ)</code><br>
+        <b>端点</b> <code>x<sub>B</sub>(1 − cosθ<sub>B</sub>) = y<sub>B</sub>(θ<sub>B</sub> − sinθ<sub>B</sub>)</code><br>
+        <b>下降时间</b> <code>T = θ<sub>B</sub>√(R/g)</code><br>
+        <b>圆弧</b> <code>R<sub>c</sub> ∈ [AB/2, 20R₀]</code><br>
+        <b>基准</b> <code>R₀ = (x<sub>B</sub>² + y<sub>B</sub>²)/(2x<sub>B</sub>)</code>
+      </div>
+      <p class="hint">
+        三条赛道从 A 同时静止释放，仅受重力、无摩擦。黄色圆弧由 A、B 和半径 R<sub>c</sub> 共同确定：R<sub>c</sub>=AB/2 为最小半圆，R<sub>c</sub>=R₀ 时在 A 点竖直，R<sub>c</sub> 越大越接近直线。R<sub>c</sub> 与摆线生成圆半径 R 不是同一个量。
+      </p>
+    </aside>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+
+  const G = 9.8;
+  const TAU = Math.PI * 2;
+  const FONT = '-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+  const COL = {
+    cycloid: "#2563eb",
+    circle: "#d97706",
+    straight: "#94a3b8",
+    ink: "#0f172a",
+    muted: "#94a3b8",
+    slate: "#64748b",
+    grid: "#eef1f5",
+    axis: "#cbd5e1",
+    violet: "#7c3aed",
+    teal: "#0d9488"
+  };
+
+  const $ = id => document.getElementById(id);
+  const state = {
+    xb: 8,
+    yb: 4,
+    speed: 1,
+    playing: true,
+    simT: 0,
+    tau: 0,
+    rcT: null,
+    show: { straight: true, circle: true, cycloid: true, velocity: true }
+  };
+
+  const TAUTO = {
+    R: 1,
+    T: Math.PI * Math.sqrt(1 / G),
+    om: 0.5 * Math.sqrt(G / 1),
+    starts: [0.65, 1.25, 1.85],
+    colors: [COL.cycloid, COL.violet, COL.teal]
+  };
+
+  function makeSurface(canvas) {
+    const ctx = canvas.getContext("2d");
+    const size = { w: 0, h: 0, dpr: 1 };
+    const resize = () => {
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width < 1 || rect.height < 1) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      size.w = rect.width;
+      size.h = rect.height;
+      size.dpr = dpr;
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    const ro = new ResizeObserver(resize);
+    ro.observe(canvas);
+    resize();
+    return { ctx, size, resize, ro };
+  }
+
+  const stage = makeSurface($("stage"));
+  const tauto = makeSurface($("tauto"));
+  const gen = makeSurface($("gen"));
+  let data = null;
+  let lastTs = 0;
+  let lastRaceNote = "";
+  let lastTautoNote = "";
+
+  function niceStep(raw) {
+    const p = Math.pow(10, Math.floor(Math.log10(raw)));
+    const r = raw / p;
+    let m = 1;
+    if (r > 5) m = 10;
+    else if (r > 2) m = 5;
+    else if (r > 1) m = 2;
+    return m * p;
+  }
+
+  function solveTheta(ratio) {
+    let lo = 1e-9;
+    let hi = TAU - 1e-9;
+    for (let i = 0; i < 90; i++) {
+      const mid = 0.5 * (lo + hi);
+      const f = (mid - Math.sin(mid)) / (1 - Math.cos(mid));
+      if (f < ratio) lo = mid;
+      else hi = mid;
+    }
+    return 0.5 * (lo + hi);
+  }
+
+  function buildData() {
+    const xb = state.xb;
+    const yb = state.yb;
+    const zeroDrop = yb <= 1e-12;
+    const thetaB = zeroDrop ? TAU : solveTheta(xb / yb);
+    const R = zeroDrop ? xb / TAU : yb / (1 - Math.cos(thetaB));
+    const Tc = Math.sqrt(R / G) * thetaB;
+
+    const SEG = 480;
+    const cycPts = [];
+    for (let i = 0; i <= SEG; i++) {
+      const th = thetaB * i / SEG;
+      cycPts.push([R * (th - Math.sin(th)), R * (1 - Math.cos(th))]);
+    }
+
+    const L = Math.hypot(xb, yb);
+    const acc = zeroDrop ? 0 : G * yb / L;
+    const Ts = zeroDrop ? Infinity : Math.sqrt(2 * L / acc);
+    const strPts = [[0, 0], [xb, yb]];
+
+    const Rmin = L / 2;
+    const R0 = (xb * xb + yb * yb) / (2 * xb);
+    const Rmax = 20 * R0;
+    const degenerate = R0 - Rmin < 1e-9;
+    let rcT = state.rcT;
+    if (rcT === null || !isFinite(rcT)) {
+      rcT = degenerate ? 0 : 0.5;
+    }
+    rcT = Math.max(0, Math.min(1, rcT));
+    state.rcT = rcT;
+    const Rc = degenerate
+      ? R0 * Math.pow(Rmax / R0, rcT)
+      : (rcT <= 0.5
+        ? Rmin * Math.pow(R0 / Rmin, 2 * rcT)
+        : R0 * Math.pow(Rmax / R0, 2 * (rcT - 0.5)));
+
+    const h = Math.sqrt(Math.max(0, Rc * Rc - Rmin * Rmin));
+    const nx = yb / L;
+    const ny = -xb / L;
+    const cx = xb / 2 + h * nx;
+    const cy = yb / 2 + h * ny;
+    const aA = Math.atan2(-cy, -cx);
+    const aB = Math.atan2(yb - cy, xb - cx);
+    let da = aA - aB;
+    da = ((da % TAU) + TAU) % TAU;
+    if (da > Math.PI) da = Math.PI;
+
+    const circPts = [];
+    for (let i = 0; i <= SEG; i++) {
+      const tt = i / SEG;
+      const al = aA - da * tt;
+      circPts.push([cx + Rc * Math.cos(al), cy + Rc * Math.sin(al)]);
+    }
+
+    const N = 6000;
+    const timeArr = new Float64Array(N + 1);
+    const fracArr = new Float64Array(N + 1);
+    for (let i = 0; i <= N; i++) {
+      fracArr[i] = 0.5 * (1 - Math.cos(Math.PI * i / N));
+    }
+    for (let i = 0; i < N; i++) {
+      const um = (i + 0.5) / N;
+      const tt = 0.5 * (1 - Math.cos(Math.PI * um));
+      const al = aA - da * tt;
+      const yy = Math.max(1e-14, cy + Rc * Math.sin(al));
+      const integ = (Rc * da * 0.5 * Math.PI * Math.sin(Math.PI * um)) / Math.sqrt(2 * G * yy);
+      timeArr[i + 1] = timeArr[i] + integ / N;
+    }
+    const Tcircle = timeArr[N];
+
+    let xMin = 0;
+    let xMax = xb;
+    let yMax = Math.max(yb, 1e-6);
+    const include = (x, y) => {
+      if (x < xMin) xMin = x;
+      if (x > xMax) xMax = x;
+      if (y > yMax) yMax = y;
+    };
+    for (const p of cycPts) include(p[0], p[1]);
+    for (const p of circPts) include(p[0], p[1]);
+
+    const cyc = t => {
+      const done = t >= Tc;
+      const th = Math.min(thetaB, t * Math.sqrt(G / R));
+      const x = R * (th - Math.sin(th));
+      const y = R * (1 - Math.cos(th));
+      let tx = 1 - Math.cos(th);
+      let ty = Math.sin(th);
+      const mag = Math.hypot(tx, ty);
+      if (mag > 1e-9) {
+        tx /= mag;
+        ty /= mag;
+      } else {
+        tx = 0;
+        ty = 1;
+      }
+      return { x, y, v: Math.sqrt(Math.max(0, 2 * G * y)), tx, ty, th, done };
+    };
+
+    const str = t => {
+      const done = isFinite(Ts) && t >= Ts;
+      const s = acc > 0 ? Math.min(L, 0.5 * acc * t * t) : 0;
+      const f = s / L;
+      const x = xb * f;
+      const y = yb * f;
+      return { x, y, v: Math.sqrt(Math.max(0, 2 * G * y)), tx: xb / L, ty: yb / L, done };
+    };
+
+    const circ = t => {
+      const done = t >= Tcircle;
+      let tt;
+      if (done) {
+        tt = 1;
+      } else {
+        let lo = 0;
+        let hi = N;
+        while (hi - lo > 1) {
+          const mid = (lo + hi) >> 1;
+          if (timeArr[mid] <= t) lo = mid;
+          else hi = mid;
+        }
+        const span = timeArr[lo + 1] - timeArr[lo];
+        const f = span > 0 ? (t - timeArr[lo]) / span : 0;
+        tt = fracArr[lo] + (fracArr[lo + 1] - fracArr[lo]) * f;
+      }
+      const al = aA - da * tt;
+      const x = cx + Rc * Math.cos(al);
+      const y = Math.max(0, cy + Rc * Math.sin(al));
+      const v = Math.sqrt(Math.max(0, 2 * G * y));
+      const tx = Math.sin(al);
+      const ty = -Math.cos(al);
+      return { x, y, v, tx, ty, done };
+    };
+
+    const maxFiniteT = Math.max(Tc, Tcircle);
+    const maxT = isFinite(Ts) ? Math.max(maxFiniteT, Ts) : maxFiniteT;
+    const loopT = isFinite(Ts) ? maxT : maxFiniteT;
+
+    return {
+      xb, yb, zeroDrop, thetaB, R, Tc,
+      Rmin, R0, Rmax, Rc, rcT, cx, cy, aA, da,
+      L, Ts, Tcircle, xMin, xMax, yMax,
+      maxFiniteT, maxT, loopT,
+      cycPts, circPts, strPts,
+      cyc, str, circ
+    };
+  }
+
+  function fmtTime(t) {
+    return isFinite(t) ? t.toFixed(3) + " s" : "∞";
+  }
+
+  function updateReadouts() {
+    $("t-cyc").textContent = fmtTime(data.Tc);
+    $("t-circ").textContent = fmtTime(data.Tcircle);
+    $("t-str").textContent = fmtTime(data.Ts);
+    $("st-tc").innerHTML = data.Tc.toFixed(3) + '<span> s</span>';
+    const save = isFinite(data.Ts) ? ((data.Ts - data.Tc) / data.Ts) * 100 : 100;
+    $("st-save").innerHTML = save.toFixed(1) + '<span> %</span>';
+    $("params").textContent = (data.zeroDrop ? "θ_B = 2π" : "θ_B = " + data.thetaB.toFixed(3) + " rad")
+      + " · R = " + data.R.toFixed(3) + " m";
+    $("genNote").textContent = "R = " + data.R.toFixed(2) + " m";
+    $("v-rc").textContent = data.Rc.toFixed(2) + " m";
+    $("rc").value = String(Math.round(data.rcT * 1000));
+    $("rcNote").textContent = "R₀ = " + data.R0.toFixed(2) + " m · 可调 "
+      + data.Rmin.toFixed(2) + "–" + data.Rmax.toFixed(2) + " m";
+    const lim = $("limitNote");
+    if (data.zeroDrop) {
+      lim.textContent = "y_B = 0：直线轨道水平，重力无切向分量，T = ∞；摆线取 θ_B = 2π 极限。";
+      lim.classList.add("show");
+    } else {
+      lim.textContent = "";
+      lim.classList.remove("show");
+    }
+  }
+
+  function stageView() {
+    const w = stage.size.w;
+    const h = stage.size.h;
+    const padL = 56;
+    const padR = 78;
+    const padT = 76;
+    const padB = 42;
+    const spanX = Math.max(data.xMax - data.xMin, 1e-3);
+    const x0 = data.xMin - spanX * 0.04;
+    const x1 = data.xMax + spanX * 0.04;
+    const y1 = Math.max(data.yMax * 1.04, 1e-3);
+    const scale = Math.max(1, Math.min((w - padL - padR) / (x1 - x0), (h - padT - padB) / y1));
+    const ox = padL + Math.max(0, ((w - padL - padR) - (x1 - x0) * scale) / 2);
+    const oy = padT + Math.max(0, ((h - padT - padB) - y1 * scale) / 2);
+    return { scale, ox, oy, x0, x1, y1, axisX: x0 };
+  }
+
+  function strokePath(ctx, pts, color, width, dash, alpha, X, Y) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    if (dash) ctx.setLineDash(dash);
+    ctx.beginPath();
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i];
+      if (i) ctx.lineTo(X(p[0]), Y(p[1]));
+      else ctx.moveTo(X(p[0]), Y(p[1]));
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawGrid(ctx, view, X, Y) {
+    const step = niceStep(Math.max(view.x1 - view.x0, view.y1) / 6);
+    const decimals = step < 1 ? 1 : 0;
+    const xStart = Math.ceil(view.x0 / step) * step;
+    ctx.save();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = COL.grid;
+    ctx.beginPath();
+    for (let x = xStart; x <= view.x1 + 1e-9; x += step) {
+      const px = Math.round(X(x)) + 0.5;
+      ctx.moveTo(px, Y(0));
+      ctx.lineTo(px, Y(view.y1));
+    }
+    for (let y = step; y <= view.y1 + 1e-9; y += step) {
+      const py = Math.round(Y(y)) + 0.5;
+      ctx.moveTo(X(view.x0), py);
+      ctx.lineTo(X(view.x1), py);
+    }
+    ctx.stroke();
+
+    ctx.strokeStyle = COL.axis;
+    ctx.beginPath();
+    ctx.moveTo(Math.round(X(view.axisX)) + 0.5, Y(0));
+    ctx.lineTo(Math.round(X(view.axisX)) + 0.5, Y(view.y1));
+    ctx.moveTo(X(view.x0), Math.round(Y(0)) + 0.5);
+    ctx.lineTo(X(view.x1), Math.round(Y(0)) + 0.5);
+    ctx.stroke();
+
+    ctx.fillStyle = COL.muted;
+    ctx.font = "10px " + FONT;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    for (let x = xStart; x <= view.x1 + 1e-9; x += step) {
+      if (Math.abs(x) < step * 0.25) continue;
+      ctx.fillText(x.toFixed(decimals), X(x), Y(0) - 6);
+    }
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    for (let y = step; y <= data.yMax + 1e-9; y += step) {
+      ctx.fillText(y.toFixed(decimals), X(view.axisX) - 7, Y(y));
+    }
+
+    ctx.textAlign = "right";
+    ctx.textBaseline = "top";
+    ctx.fillText("水平距离 x / m", X(view.x1), Y(view.y1) + 12);
+    ctx.save();
+    ctx.translate(X(view.axisX) - 30, (Y(0) + Y(view.y1)) / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    ctx.fillText("下落高度 y / m", 0, 0);
+    ctx.restore();
+    ctx.restore();
+  }
+
+  function drawGuides(ctx, view, X, Y) {
+    ctx.save();
+    ctx.setLineDash([2, 4]);
+    ctx.strokeStyle = "rgba(37,99,235,.22)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(X(view.x0), Y(data.yb));
+    ctx.lineTo(X(data.xb), Y(data.yb));
+    ctx.moveTo(X(data.xb), Y(0));
+    ctx.lineTo(X(data.xb), Y(data.yb));
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawEndpoints(ctx, X, Y) {
+    const ax = X(0);
+    const ay = Y(0);
+    const bx = X(data.xb);
+    const by = Y(data.yb);
+    ctx.save();
+    ctx.fillStyle = "#fff";
+    ctx.strokeStyle = COL.ink;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(ax, ay, 4.5, 0, TAU);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(bx, by, 5, 0, TAU);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = COL.ink;
+    ctx.font = "600 12px " + FONT;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText("A 起点", ax + 10, ay - 24);
+    ctx.fillText("B 终点", bx + 11, by - 7);
+    ctx.fillStyle = COL.slate;
+    ctx.font = "9.5px " + FONT;
+    ctx.fillText("(" + data.xb.toFixed(1) + ", " + data.yb.toFixed(1) + ") m", bx + 11, by + 8);
+    ctx.restore();
+  }
+
+  function drawVelocity(ctx, s, X, Y) {
+    if (s.v < 0.08 || s.done) return;
+    const len = Math.min(12 + s.v * 3.6, 60);
+    const px = X(s.x);
+    const py = Y(s.y);
+    const ex = px + s.tx * len;
+    const ey = py + s.ty * len;
+    const ang = Math.atan2(s.ty, s.tx);
+    ctx.save();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    ctx.strokeStyle = "rgba(255,255,255,.92)";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+
+    ctx.strokeStyle = "#dc2626";
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(ex, ey);
+    ctx.lineTo(ex - 7.5 * Math.cos(ang - 0.42), ey - 7.5 * Math.sin(ang - 0.42));
+    ctx.lineTo(ex - 7.5 * Math.cos(ang + 0.42), ey - 7.5 * Math.sin(ang + 0.42));
+    ctx.closePath();
+    ctx.fillStyle = "#dc2626";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,.92)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawBead(ctx, s, color, X, Y) {
+    const px = X(s.x);
+    const py = Y(s.y);
+    ctx.save();
+    ctx.shadowColor = "rgba(15,23,42,.25)";
+    ctx.shadowBlur = 6;
+    ctx.shadowOffsetY = 2;
+    ctx.beginPath();
+    ctx.arc(px, py, 7, 0, TAU);
+    ctx.fillStyle = "#fff";
+    ctx.fill();
+    ctx.shadowColor = "transparent";
+    ctx.beginPath();
+    ctx.arc(px, py, 5.4, 0, TAU);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "rgba(255,255,255,.85)";
+    ctx.stroke();
+    if (s.done) {
+      ctx.beginPath();
+      ctx.arc(px, py, 9.5, 0, TAU);
+      ctx.globalAlpha = 0.35;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawGen() {
+    const ctx = gen.ctx;
+    const w = gen.size.w;
+    const h = gen.size.h;
+    if (!w || !h) return;
+    ctx.setTransform(gen.size.dpr, 0, 0, gen.size.dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    if (!data || w < 180 || h < 100) return;
+
+    const theta = data.cyc(state.simT).th;
+    const xmin = -1.2;
+    const xmax = data.thetaB + 1.35;
+    const ymin = -0.3;
+    const ymax = 2.3;
+    const padX = 14;
+    const top = 12;
+    const bottom = h - 20;
+    const sw = xmax - xmin;
+    const sh = ymax - ymin;
+    const sc = Math.min((w - 2 * padX) / sw, (bottom - top) / sh);
+    const cx = padX + ((w - 2 * padX) - sw * sc) / 2 - xmin * sc;
+    const cy = top + ((bottom - top) - sh * sc) / 2 - ymin * sc;
+    const px = u => cx + u * sc;
+    const py = u => cy + u * sc;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, w, h);
+    ctx.clip();
+
+    ctx.strokeStyle = "#cbd5e1";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(px(xmin), py(0));
+    ctx.lineTo(px(xmax), py(0));
+    ctx.stroke();
+
+    ctx.strokeStyle = COL.cycloid;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    const steps = 140;
+    for (let i = 0; i <= steps; i++) {
+      const th = theta * i / steps;
+      const x = th - Math.sin(th);
+      const y = 1 - Math.cos(th);
+      if (i) ctx.lineTo(px(x), py(y));
+      else ctx.moveTo(px(x), py(y));
+    }
+    ctx.stroke();
+
+    const cxp = px(theta);
+    const cyp = py(1);
+    ctx.beginPath();
+    ctx.arc(cxp, cyp, sc, 0, TAU);
+    ctx.fillStyle = "rgba(37,99,235,.05)";
+    ctx.fill();
+    ctx.strokeStyle = "#94a3b8";
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    const tx = theta - Math.sin(theta);
+    const ty = 1 - Math.cos(theta);
+    ctx.strokeStyle = "rgba(37,99,235,.45)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cxp, cyp);
+    ctx.lineTo(px(tx), py(ty));
+    ctx.stroke();
+
+    ctx.fillStyle = "#94a3b8";
+    ctx.beginPath();
+    ctx.arc(cxp, cyp, 2, 0, TAU);
+    ctx.fill();
+
+    ctx.fillStyle = COL.cycloid;
+    ctx.beginPath();
+    ctx.arc(px(tx), py(ty), 3.2, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.fillStyle = COL.muted;
+    ctx.font = "9.5px " + FONT;
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "left";
+    ctx.fillText("滚动轨迹即摆线", 14, h - 9);
+    ctx.textAlign = "right";
+    ctx.fillText("θ = " + theta.toFixed(2) + " rad", w - 14, h - 9);
+  }
+
+  function drawStage() {
+    const ctx = stage.ctx;
+    const w = stage.size.w;
+    const h = stage.size.h;
+    if (!w || !h) return;
+    ctx.setTransform(stage.size.dpr, 0, 0, stage.size.dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    if (!data || w < 220 || h < 160) return;
+
+    const view = stageView();
+    const X = x => view.ox + x * view.scale;
+    const Y = y => view.oy + y * view.scale;
+
+    drawGrid(ctx, view, X, Y);
+    drawGuides(ctx, view, X, Y);
+
+    if (state.show.straight) strokePath(ctx, data.strPts, COL.straight, 2, [6, 5], 0.8, X, Y);
+    if (state.show.circle) strokePath(ctx, data.circPts, COL.circle, 2.2, null, 0.95, X, Y);
+    if (state.show.cycloid) {
+      strokePath(ctx, data.cycPts, "rgba(37,99,235,.14)", 8, null, 1, X, Y);
+      strokePath(ctx, data.cycPts, COL.cycloid, 2.8, null, 1, X, Y);
+    }
+
+    const sc = data.str(state.simT);
+    const sk = data.cyc(state.simT);
+    const sr = data.circ(state.simT);
+
+    drawEndpoints(ctx, X, Y);
+
+    if (state.show.velocity) {
+      if (state.show.straight) drawVelocity(ctx, sc, X, Y);
+      if (state.show.circle) drawVelocity(ctx, sr, X, Y);
+      if (state.show.cycloid) drawVelocity(ctx, sk, X, Y);
+    }
+
+    if (state.show.straight) drawBead(ctx, sc, COL.straight, X, Y);
+    if (state.show.circle) drawBead(ctx, sr, COL.circle, X, Y);
+    if (state.show.cycloid) drawBead(ctx, sk, COL.cycloid, X, Y);
+
+    let note;
+    if (data.zeroDrop) {
+      if (state.simT >= data.maxFiniteT) note = "摆线最快 · 直线 T = ∞";
+      else if (state.simT >= data.Tc) note = "摆线先到 · " + data.Tc.toFixed(2) + " s";
+      else note = "t = " + state.simT.toFixed(2) + " s";
+    } else if (state.simT >= data.maxT) {
+      note = "全部到达 · 摆线 " + data.Tc.toFixed(2) + " s 最快";
+    } else if (state.simT >= data.maxFiniteT) {
+      note = "圆弧已到 · 直线仍在滑行";
+    } else if (state.simT >= data.Tc) {
+      note = "摆线先到 · " + data.Tc.toFixed(2) + " s";
+    } else {
+      note = "t = " + state.simT.toFixed(2) + " s";
+    }
+    if (note !== lastRaceNote) {
+      $("raceNote").textContent = note;
+      lastRaceNote = note;
+    }
+  }
+
+  function tautoTheta(theta0, t) {
+    const c = Math.cos(theta0 / 2) * Math.cos(TAUTO.om * t);
+    return 2 * Math.acos(Math.max(-1, Math.min(1, c)));
+  }
+
+  function drawTauto() {
+    const ctx = tauto.ctx;
+    const w = tauto.size.w;
+    const h = tauto.size.h;
+    if (!w || !h) return;
+    ctx.setTransform(tauto.size.dpr, 0, 0, tauto.size.dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    if (w < 200 || h < 100) return;
+
+    const R = TAUTO.R;
+    const padL = 38;
+    const padR = 28;
+    const padT = 12;
+    const padB = 24;
+    const worldW = TAU * R;
+    const worldH = 2 * R;
+    const sc = Math.min((w - padL - padR) / worldW, (h - padT - padB) / worldH);
+    const ox = padL + ((w - padL - padR) - worldW * sc) / 2;
+    const oy = padT + ((h - padT - padB) - worldH * sc) / 2;
+    const X = x => ox + x * sc;
+    const Y = y => oy + y * sc;
+
+    const full = [];
+    for (let i = 0; i <= 360; i++) {
+      const th = TAU * i / 360;
+      full.push([R * (th - Math.sin(th)), R * (1 - Math.cos(th))]);
+    }
+    strokePath(ctx, full, "#94a3b8", 1.8, null, 0.35, X, Y);
+
+    const left = [];
+    for (let i = 0; i <= 180; i++) {
+      const th = Math.PI * i / 180;
+      left.push([R * (th - Math.sin(th)), R * (1 - Math.cos(th))]);
+    }
+    strokePath(ctx, left, COL.cycloid, 2.4, null, 0.95, X, Y);
+
+    const t = Math.min(state.tau, TAUTO.T);
+    const bottomX = X(Math.PI * R);
+    const bottomY = Y(2 * R);
+
+    for (let k = 0; k < TAUTO.starts.length; k++) {
+      const th0 = TAUTO.starts[k];
+      const x0 = R * (th0 - Math.sin(th0));
+      const y0 = R * (1 - Math.cos(th0));
+      ctx.save();
+      ctx.strokeStyle = TAUTO.colors[k];
+      ctx.fillStyle = "#fff";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(X(x0), Y(y0), 3.6, 0, TAU);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+
+      const th = tautoTheta(th0, t);
+      const seg = [];
+      for (let i = 0; i <= 40; i++) {
+        const v = th0 + (th - th0) * i / 40;
+        seg.push([R * (v - Math.sin(v)), R * (1 - Math.cos(v))]);
+      }
+      if (th > th0 + 1e-4) strokePath(ctx, seg, TAUTO.colors[k], 4, null, 0.16, X, Y);
+
+      const bx = R * (th - Math.sin(th));
+      const by = R * (1 - Math.cos(th));
+      ctx.save();
+      ctx.shadowColor = "rgba(15,23,42,.22)";
+      ctx.shadowBlur = 5;
+      ctx.shadowOffsetY = 1;
+      ctx.beginPath();
+      ctx.arc(X(bx), Y(by), 6.5, 0, TAU);
+      ctx.fillStyle = "#fff";
+      ctx.fill();
+      ctx.shadowColor = "transparent";
+      ctx.beginPath();
+      ctx.arc(X(bx), Y(by), 5, 0, TAU);
+      ctx.fillStyle = TAUTO.colors[k];
+      ctx.fill();
+      ctx.lineWidth = 1.3;
+      ctx.strokeStyle = "rgba(255,255,255,.9)";
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    if (state.tau >= TAUTO.T) {
+      ctx.save();
+      ctx.lineWidth = 1.5;
+      for (let k = 0; k < TAUTO.colors.length; k++) {
+        ctx.globalAlpha = 0.5 - k * 0.1;
+        ctx.strokeStyle = TAUTO.colors[k];
+        ctx.beginPath();
+        ctx.arc(bottomX, bottomY, 9 + k * 4, 0, TAU);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    ctx.save();
+    ctx.fillStyle = COL.ink;
+    ctx.beginPath();
+    ctx.arc(bottomX, bottomY, 3.6, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = COL.slate;
+    ctx.font = "10px " + FONT;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText("最低点", bottomX, bottomY + 8);
+    ctx.restore();
+
+    if (w > 560) {
+      ctx.save();
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "10.5px " + FONT;
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+      ctx.fillText("不同高度 · 同时静止释放", w - 18, h / 2 - 8);
+      ctx.fillText("同一时刻到达最低点", w - 18, h / 2 + 10);
+      ctx.restore();
+    }
+
+    ctx.save();
+    ctx.fillStyle = COL.muted;
+    ctx.font = "9.5px " + FONT;
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    ctx.fillText("R = 1.0 m", w - 14, h - 9);
+    ctx.restore();
+
+    let note;
+    if (state.tau >= TAUTO.T) note = "同时到达 · T = " + TAUTO.T.toFixed(3) + " s";
+    else note = "t = " + t.toFixed(2) + " s / T = " + TAUTO.T.toFixed(3) + " s";
+    if (note !== lastTautoNote) {
+      $("tautoNote").textContent = note;
+      lastTautoNote = note;
+    }
+  }
+
+  function frame(ts) {
+    if (!lastTs) lastTs = ts;
+    const raw = Math.min((ts - lastTs) / 1000, 0.05);
+    lastTs = ts;
+    const dt = raw * state.speed;
+    if (state.playing) {
+      state.simT += dt;
+      if (state.simT > data.loopT + 1.8) state.simT = 0;
+      state.tau += dt;
+      if (state.tau > TAUTO.T + 1.1) state.tau = 0;
+    }
+    drawStage();
+    drawTauto();
+    drawGen();
+    requestAnimationFrame(frame);
+  }
+
+  function setPlaying(p) {
+    state.playing = p;
+    const btn = $("playBtn");
+    btn.textContent = p ? "暂停" : "开始";
+    btn.classList.toggle("primary", p);
+  }
+
+  function rebuild() {
+    data = buildData();
+    state.simT = 0;
+    updateReadouts();
+  }
+
+  $("xb").addEventListener("input", e => {
+    state.xb = parseFloat(e.target.value);
+    state.rcT = null;
+    $("v-xb").textContent = state.xb.toFixed(1) + " m";
+    rebuild();
+  });
+
+  $("yb").addEventListener("input", e => {
+    state.yb = parseFloat(e.target.value);
+    state.rcT = null;
+    $("v-yb").textContent = state.yb.toFixed(1) + " m";
+    rebuild();
+  });
+
+  $("rc").addEventListener("input", e => {
+    state.rcT = parseFloat(e.target.value) / 1000;
+    rebuild();
+  });
+
+  $("speed").addEventListener("input", e => {
+    state.speed = parseFloat(e.target.value);
+    $("v-speed").textContent = state.speed.toFixed(1) + "×";
+  });
+
+  $("velBtn").addEventListener("click", () => {
+    state.show.velocity = !state.show.velocity;
+    const btn = $("velBtn");
+    btn.classList.toggle("active", state.show.velocity);
+    btn.setAttribute("aria-pressed", String(state.show.velocity));
+  });
+
+  $("playBtn").addEventListener("click", () => {
+    if (state.playing) {
+      setPlaying(false);
+      return;
+    }
+    if (state.simT >= data.loopT) state.simT = 0;
+    if (state.tau >= TAUTO.T + 1.1) state.tau = 0;
+    setPlaying(true);
+  });
+
+  $("resetBtn").addEventListener("click", () => {
+    state.simT = 0;
+    state.tau = 0;
+    setPlaying(true);
+  });
+
+  document.querySelectorAll(".tg").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const key = btn.dataset.key;
+      state.show[key] = !state.show[key];
+      btn.classList.toggle("active", state.show[key]);
+      btn.setAttribute("aria-pressed", String(state.show[key]));
+    });
+  });
+
+  data = buildData();
+  updateReadouts();
+  setPlaying(true);
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
