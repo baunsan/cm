@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>欧拉角 24 种约定 · 分步转动演示</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    margin: 0; padding: 18px 22px 22px;
+    background: #f5f6f8; color: #222;
+    display: flex; flex-direction: column;
+    min-height: 100vh;
+  }
+  header { max-width: 1380px; width: 100%; margin: 0 auto 12px; flex: 0 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #666; font-size: 13px; line-height: 1.7; }
+  .sub b { color: #334155; }
+
+  .wrap {
+    max-width: 1380px; width: 100%; margin: 0 auto;
+    flex: 1; min-height: 0; display: flex; gap: 18px;
+  }
+  #stageCard {
+    position: relative; flex: 1; min-width: 0; min-height: 520px;
+    background: #fff; border: 1px solid #d0d4da; border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.06); overflow: hidden;
+  }
+  #stage {
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 50% 42%, #ffffff 0%, #f2f5fa 62%, #e8edf5 100%);
+  }
+  #view {
+    position: absolute; inset: 0; display: block;
+    width: 100%; height: 100%; touch-action: none; cursor: grab;
+  }
+
+  .stage-toolbar {
+    position: absolute; top: 12px; left: 12px; right: 12px; z-index: 3;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 10px; pointer-events: none;
+  }
+  .stage-toolbar > * { pointer-events: auto; }
+  .legend-box {
+    display: flex; flex-wrap: wrap; gap: 5px 12px;
+    padding: 7px 11px; border: 1px solid #e2e8f0; border-radius: 10px;
+    background: rgba(255,255,255,.86); box-shadow: 0 1px 5px rgba(15,23,42,.06);
+    backdrop-filter: blur(3px); font-size: 10.5px; color: #475569;
+    max-width: calc(100% - 116px);
+  }
+  .legend-box span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+  .sw { display: inline-block; width: 16px; height: 0; vertical-align: middle; }
+  .sw.fixed { border-top: 2px solid #475569; }
+  .sw.body {
+    height: 3px; border-top: none; border-radius: 2px;
+    background: linear-gradient(90deg, #ef4444 0 33%, #22c55e 33% 66%, #2563eb 66% 100%);
+  }
+  .sw.ghost {
+    width: 22px; height: 3px; border-top: none; border-radius: 2px;
+    background: repeating-linear-gradient(90deg,
+      #ef4444 0 2px, transparent 2px 4px,
+      #22c55e 4px 6px, transparent 6px 8px,
+      #2563eb 8px 10px, transparent 10px 12px);
+  }
+  .sw.axis { border-top: 3px solid #f97316; }
+  .sw.cube {
+    width: 13px; height: 10px; border: 1.5px solid #475569; border-radius: 2px;
+    background: linear-gradient(135deg, #ef4444 0 20%, #f97316 20% 40%, #22c55e 40% 60%, #3b82f6 60% 80%, #8b5cf6 80% 100%);
+  }
+  .sw.circle {
+    width: 14px; height: 9px; border-radius: 50%;
+    border: 1.5px solid #0ea5e9; background: rgba(56,189,248,.18);
+  }
+  .sw.circleFixed {
+    width: 14px; height: 9px; border-radius: 50%;
+    border: 1.5px dashed #64748b; background: rgba(148,163,184,.10);
+  }
+  .view-btn {
+    flex: none; width: auto; padding: 7px 12px;
+    border: 1px solid #cbd5e1; border-radius: 999px;
+    background: rgba(255,255,255,.92); color: #475569;
+    font-size: 11.5px; line-height: 1.3; cursor: pointer;
+    box-shadow: 0 1px 5px rgba(15,23,42,.08);
+    backdrop-filter: blur(2px);
+  }
+  .view-btn:hover { background: #f8fafc; }
+
+  .step-indicator {
+    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 3;
+    padding: 8px 16px; border-radius: 999px;
+    background: rgba(15,23,42,.86); color: #fff;
+    font-size: 12px; letter-spacing: .3px; white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(15,23,42,.2);
+  }
+  .step-indicator[hidden] { display: none; }
+  .stage-hint {
+    position: absolute; right: 14px; bottom: 14px; z-index: 2;
+    font-size: 10.5px; color: #94a3b8; background: rgba(255,255,255,.7);
+    padding: 4px 8px; border-radius: 6px; pointer-events: none;
+  }
+
+  aside {
+    width: 372px; flex: 0 0 372px;
+    background: #fff; border: 1px solid #d0d4da; border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.06);
+    padding: 16px 18px; overflow-y: auto;
+    scrollbar-width: thin; scrollbar-color: #d7dde7 transparent;
+  }
+  aside::-webkit-scrollbar { width: 6px; }
+  aside::-webkit-scrollbar-thumb { background: #d7dde7; border-radius: 3px; }
+  aside::-webkit-scrollbar-track { background: transparent; }
+  aside h2 { font-size: 13.5px; margin: 0 0 9px; letter-spacing: .3px; }
+  aside h2:not(:first-child) { margin-top: 17px; }
+  .row { margin-bottom: 11px; }
+  .field-label { font-size: 12px; color: #64748b; margin-bottom: 5px; }
+  .dis { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; margin-bottom: 3px; gap: 8px; }
+  .dis label { color: #334155; }
+  .dis .val { font-variant-numeric: tabular-nums; color: #7c3aed; font-weight: 600; font-size: 12.5px; white-space: nowrap; }
+  input[type=range] { width: 100%; accent-color: #7c3aed; }
+  select {
+    width: 100%; padding: 8px 10px;
+    border: 1px solid #cbd5e1; border-radius: 8px;
+    background: #fff; font-size: 13px; color: #1e293b;
+    font-family: inherit; cursor: pointer;
+  }
+  select:focus { outline: 2px solid #ddd6fe; border-color: #a78bfa; }
+  .seg {
+    display: flex; border: 1px solid #cbd5e1; border-radius: 9px;
+    overflow: hidden; background: #fff;
+  }
+  .seg button {
+    flex: 1; border: none; border-radius: 0; padding: 8px 4px;
+    background: #fff; font-size: 11.5px; color: #475569; margin: 0;
+  }
+  .seg button.active {
+    background: #f5f3ff; color: #6d28d9; font-weight: 600;
+    box-shadow: inset 0 0 0 1px #c4b5fd;
+  }
+  .conv-line {
+    margin: 2px 0 0; padding: 8px 10px;
+    background: #f5f3ff; border: 1px solid #e9e3ff; border-radius: 8px;
+    font-size: 12px; color: #6d28d9; font-weight: 600; letter-spacing: .2px;
+  }
+  button {
+    flex: 1; padding: 7px 0; border: 1px solid #cbd2dc; border-radius: 8px;
+    background: #fff; font-size: 12.5px; cursor: pointer; color: #222;
+    transition: background .15s, border-color .15s;
+    font-family: inherit;
+  }
+  button:hover { background: #eef2f7; }
+  button.primary { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+  button.primary:hover { background: #6d28d9; }
+  button:active { transform: translateY(1px); }
+  button:disabled { opacity: .5; cursor: default; transform: none; }
+  .button-row { display: flex; gap: 8px; }
+  .checks { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; font-size: 12px; color: #475569; }
+  .checks label { display: flex; align-items: center; gap: 6px; cursor: pointer; white-space: nowrap; }
+  .checks input { accent-color: #7c3aed; }
+  .hint { font-size: 11px; color: #94a3b8; line-height: 1.65; margin: 7px 0 0; }
+  .matrix-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin: 0 0 5px; font-size: 11.5px; color: #64748b; gap: 8px;
+  }
+  .matrix-head b { color: #334155; }
+  .matrix {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px;
+    padding: 8px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px; color: #1e3a8a; text-align: right;
+  }
+  .matrix span { padding: 2px 3px; font-variant-numeric: tabular-nums; }
+  .eq {
+    margin-top: 12px; padding: 9px 11px; border-radius: 8px;
+    background: #f7f9fc; border: 1px solid #e8ebf0;
+    font-size: 11.5px; color: #475569; line-height: 1.9;
+  }
+  .eq b { color: #334155; font-weight: 600; }
+  .eq code { font-family: ui-monospace, "SF Mono", Menlo, monospace; color: #1e3a8a; font-size: 11.5px; }
+  .note { font-size: 11.5px; color: #8b95a7; line-height: 1.72; margin: 10px 0 0; }
+
+  @media (max-width: 1040px) {
+    body { height: auto; min-height: 100%; overflow-y: auto; }
+    .wrap { flex-direction: column; }
+    #stageCard { flex: 0 0 auto; height: 520px; min-height: 0; }
+    aside { width: 100%; flex: 0 0 auto; overflow: visible; }
+  }
+  @media (max-width: 720px) {
+    body { padding: 14px; }
+    #stageCard { height: 430px; }
+    .legend-box { max-width: calc(100% - 104px); }
+    .stage-hint { display: none; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>欧拉角 24 种约定 · 分步转动演示</h1>
+    <div class="sub">
+      左侧画布演示三步转动的合成：空间坐标轴 <b>X-Y-Z</b> 与本体坐标轴 <b>x-y-z</b> 颜色不同。
+      在控制区选择轴序列与内旋/外旋即可覆盖全部 24 种约定。拖动鼠标旋转视角，滚轮缩放。
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div id="stageCard">
+      <div id="stage"><canvas id="view"></canvas></div>
+      <div class="stage-toolbar">
+        <div class="legend-box">
+          <span><i class="sw fixed"></i>空间系 X-Y-Z</span>
+          <span><i class="sw body"></i>本体轴 x-y-z</span>
+          <span><i class="sw ghost"></i>中间参考系</span>
+          <span><i class="sw axis"></i>当前转轴</span>
+          <span><i class="sw cube"></i>刚体</span>
+          <span><i class="sw circleFixed"></i>空间 X-Y 圆</span>
+          <span><i class="sw circle"></i>本体 x-y 圆</span>
+        </div>
+        <button class="view-btn" id="btnView" type="button">重置视角</button>
+      </div>
+      <div class="step-indicator" id="stepIndicator" hidden></div>
+      <div class="stage-hint">拖拽旋转 · 滚轮缩放</div>
+    </div>
+
+    <aside>
+      <h2>约定选择</h2>
+      <div class="row">
+        <div class="field-label">轴序列</div>
+        <select id="seqSelect">
+          <optgroup label="经典欧拉角（首末轴相同）">
+            <option value="zxz" selected>Z – X – Z</option>
+            <option value="zyz">Z – Y – Z</option>
+            <option value="xyx">X – Y – X</option>
+            <option value="xzx">X – Z – X</option>
+            <option value="yxy">Y – X – Y</option>
+            <option value="yzy">Y – Z – Y</option>
+          </optgroup>
+          <optgroup label="Tait-Bryan（三轴互异）">
+            <option value="xyz">X – Y – Z</option>
+            <option value="xzy">X – Z – Y</option>
+            <option value="yxz">Y – X – Z</option>
+            <option value="yzx">Y – Z – X</option>
+            <option value="zxy">Z – X – Y</option>
+            <option value="zyx">Z – Y – X</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="row">
+        <div class="field-label">旋转方式</div>
+        <div class="seg" id="modeSeg">
+          <button type="button" data-mode="intrinsic" class="active">内旋 · 绕本体轴</button>
+          <button type="button" data-mode="extrinsic">外旋 · 绕固定轴</button>
+        </div>
+      </div>
+      <div class="conv-line" id="convSummary">Z – X – Z 内旋 · 经典欧拉角</div>
+      <p class="hint" id="modeNote">依次绕本体轴转动，每一步的转轴随刚体一起转动。</p>
+
+      <h2>每一步转角</h2>
+      <div class="row">
+        <div class="dis"><label for="ang0" id="lbl0">第 1 步 · α 绕 Z 轴</label><span class="val" id="v0">45.0°</span></div>
+        <input type="range" id="ang0" min="0" max="360" step="0.5" value="45">
+      </div>
+      <div class="row">
+        <div class="dis"><label for="ang1" id="lbl1">第 2 步 · β 绕本体 X 轴</label><span class="val" id="v1">55.0°</span></div>
+        <input type="range" id="ang1" min="0" max="360" step="0.5" value="55">
+      </div>
+      <div class="row">
+        <div class="dis"><label for="ang2" id="lbl2">第 3 步 · γ 绕本体 Z 轴</label><span class="val" id="v2">60.0°</span></div>
+        <input type="range" id="ang2" min="0" max="360" step="0.5" value="60">
+      </div>
+      <p class="hint">拖动滑杆直接改变该步转角；范围 0°…360°。</p>
+
+      <h2>分步演示</h2>
+      <div class="button-row">
+        <button id="btnPlay" class="primary" type="button">播放</button>
+        <button id="btnStep" type="button">单步</button>
+        <button id="btnReset" type="button">重置</button>
+      </div>
+      <div class="row" style="margin-top:10px;margin-bottom:0">
+        <div class="dis"><label for="speed">播放速度</label><span class="val" id="vSpeed">1.00×</span></div>
+        <input type="range" id="speed" min="0.25" max="3" step="0.05" value="1">
+      </div>
+      <p class="hint">播放会先归零，再依次演示三步转动；单步每次只演示下一步。</p>
+
+      <h2>显示</h2>
+      <div class="checks">
+        <label><input type="checkbox" id="chkFixed" checked>空间轴</label>
+        <label><input type="checkbox" id="chkBody" checked>本体轴</label>
+        <label><input type="checkbox" id="chkCube" checked>刚体方块</label>
+        <label><input type="checkbox" id="chkFrames" checked>中间参考系</label>
+        <label><input type="checkbox" id="chkArcs" checked>旋转圆弧</label>
+        <label><input type="checkbox" id="chkCircle" checked>x-y 单位圆</label>
+      </div>
+
+      <h2>旋转矩阵</h2>
+      <div class="matrix-head"><b>R</b><span id="formula">R = R<sub>Z</sub>(α) R<sub>X</sub>(β) R<sub>Z</sub>(γ)</span></div>
+      <div class="matrix" id="roMatrix">
+        <span>1.00</span><span>0.00</span><span>0.00</span>
+        <span>0.00</span><span>1.00</span><span>0.00</span>
+        <span>0.00</span><span>0.00</span><span>1.00</span>
+      </div>
+
+      <div class="eq">
+        <b>内旋</b>：<code>R = R_A(α) R_B(β) R_C(γ)</code><br>
+        <b>外旋</b>：<code>R = R_C(γ) R_B(β) R_A(α)</code><br>
+        外旋 A-B-C 与内旋 C-B-A 等价。
+      </div>
+      <p class="note">经典欧拉角首末轴相同（如 Z-X-Z），中间角为 0° 或 180° 时出现万向节死锁；Tait-Bryan 三轴互异，常用于航空的 roll-pitch-yaw。</p>
+    </aside>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+
+    const DEG = Math.PI / 180;
+    const TAU = Math.PI * 2;
+    const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+    const easeInOut = t => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+    const fmt = (v, n = 2) => (Math.abs(v) < 5e-4 ? 0 : v).toFixed(n);
+    const $ = id => document.getElementById(id);
+
+    const CONV = {
+      zxz: ['z', 'x', 'z'], zyz: ['z', 'y', 'z'],
+      xyx: ['x', 'y', 'x'], xzx: ['x', 'z', 'x'],
+      yxy: ['y', 'x', 'y'], yzy: ['y', 'z', 'y'],
+      xyz: ['x', 'y', 'z'], xzy: ['x', 'z', 'y'],
+      yxz: ['y', 'x', 'z'], yzx: ['y', 'z', 'x'],
+      zxy: ['z', 'x', 'y'], zyx: ['z', 'y', 'x']
+    };
+    const E = {
+      x: { x: 1, y: 0, z: 0 },
+      y: { x: 0, y: 1, z: 0 },
+      z: { x: 0, y: 0, z: 1 }
+    };
+    const STEP_SYMS = ['α', 'β', 'γ'];
+    const STEP_COLORS = ['#f59e0b', '#10b981', '#8b5cf6'];
+    const DEFAULT_DEG = [45, 55, 60];
+    const STEP_DURATION = 1.1;
+    const STEP_PAUSE = 0.32;
+
+    const state = {
+      seqKey: 'zxz',
+      intrinsic: true,
+      angles: DEFAULT_DEG.map(d => d * DEG),
+      targets: DEFAULT_DEG.map(d => d * DEG),
+      demoStep: 0,
+      animStep: -1,
+      animT: 0,
+      pendingDelay: 0,
+      playing: false,
+      autoPlay: false,
+      speed: 1,
+      userAdjusting: false,
+      show: {
+        fixed: true,
+        body: true,
+        cube: true,
+        frames: true,
+        arcs: true,
+        circle: true
+      }
+    };
+
+    const el = {
+      seqSelect: $('seqSelect'),
+      modeSeg: $('modeSeg'),
+      convSummary: $('convSummary'),
+      modeNote: $('modeNote'),
+      formula: $('formula'),
+      roMatrix: $('roMatrix'),
+      ang0: $('ang0'),
+      ang1: $('ang1'),
+      ang2: $('ang2'),
+      v0: $('v0'),
+      v1: $('v1'),
+      v2: $('v2'),
+      lbl0: $('lbl0'),
+      lbl1: $('lbl1'),
+      lbl2: $('lbl2'),
+      btnPlay: $('btnPlay'),
+      btnStep: $('btnStep'),
+      btnReset: $('btnReset'),
+      speed: $('speed'),
+      vSpeed: $('vSpeed'),
+      stepIndicator: $('stepIndicator'),
+      btnView: $('btnView')
+    };
+    const matrixCells = Array.from(el.roMatrix.querySelectorAll('span'));
+
+    function vAdd(a, b) {
+      return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
+    }
+    function vSub(a, b) {
+      return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+    }
+    function vScale(a, s) {
+      return { x: a.x * s, y: a.y * s, z: a.z * s };
+    }
+    function vDot(a, b) {
+      return a.x * b.x + a.y * b.y + a.z * b.z;
+    }
+    function vCross(a, b) {
+      return {
+        x: a.y * b.z - a.z * b.y,
+        y: a.z * b.x - a.x * b.z,
+        z: a.x * b.y - a.y * b.x
+      };
+    }
+    function vLen(a) {
+      return Math.hypot(a.x, a.y, a.z);
+    }
+    function vNorm(a) {
+      const len = vLen(a);
+      return len > 1e-9 ? { x: a.x / len, y: a.y / len, z: a.z / len } : { x: 0, y: 0, z: 0 };
+    }
+    function vPerp(v, u) {
+      const d = vDot(v, u);
+      return vSub(v, vScale(u, d));
+    }
+
+    function rotAxis(axis, a) {
+      const c = Math.cos(a);
+      const s = Math.sin(a);
+      if (axis === 'x') return [1, 0, 0, 0, c, -s, 0, s, c];
+      if (axis === 'y') return [c, 0, s, 0, 1, 0, -s, 0, c];
+      return [c, -s, 0, s, c, 0, 0, 0, 1];
+    }
+    function matMul(A, B) {
+      const C = new Array(9);
+      for (let i = 0; i < 3; i += 1) {
+        for (let j = 0; j < 3; j += 1) {
+          C[i * 3 + j] = A[i * 3] * B[j] + A[i * 3 + 1] * B[3 + j] + A[i * 3 + 2] * B[6 + j];
+        }
+      }
+      return C;
+    }
+    function applyMat(M, v) {
+      return {
+        x: M[0] * v.x + M[1] * v.y + M[2] * v.z,
+        y: M[3] * v.x + M[4] * v.y + M[5] * v.z,
+        z: M[6] * v.x + M[7] * v.y + M[8] * v.z
+      };
+    }
+    function axes() {
+      return CONV[state.seqKey];
+    }
+    function partials(angles) {
+      const seq = axes();
+      const RA = rotAxis(seq[0], angles[0]);
+      const RB = rotAxis(seq[1], angles[1]);
+      const RC = rotAxis(seq[2], angles[2]);
+      let P1;
+      let P2;
+      let P3;
+      if (state.intrinsic) {
+        P1 = RA;
+        P2 = matMul(P1, RB);
+        P3 = matMul(P2, RC);
+      } else {
+        P1 = RA;
+        P2 = matMul(RB, P1);
+        P3 = matMul(RC, P2);
+      }
+      return { P1, P2, P3 };
+    }
+    function composeAngles(angles) {
+      return partials(angles).P3;
+    }
+    function rotationAxis(s, parts) {
+      const seq = axes();
+      if (s === 0) return E[seq[0]];
+      if (s === 1) return state.intrinsic ? applyMat(parts.P1, E[seq[1]]) : E[seq[1]];
+      return state.intrinsic ? applyMat(parts.P2, E[seq[2]]) : E[seq[2]];
+    }
+    function arcRef(s, parts) {
+      const seq = axes();
+      if (s === 0) return E[seq[1]];
+      if (s === 1) return applyMat(parts.P1, E[seq[2]]);
+      return applyMat(parts.P2, E[seq[1]]);
+    }
+
+    const stage = $('stage');
+    const canvas = $('view');
+    const ctx = canvas.getContext('2d');
+    let viewW = 800;
+    let viewH = 600;
+    let dpr = 1;
+
+    const DEFAULT_CAMERA = { yaw: 32 * DEG, pitch: 24 * DEG, distance: 7.4 };
+    const camera = {
+      yaw: DEFAULT_CAMERA.yaw,
+      pitch: DEFAULT_CAMERA.pitch,
+      distance: DEFAULT_CAMERA.distance,
+      fov: 42 * DEG
+    };
+
+    function getBasis() {
+      const cp = Math.cos(camera.pitch);
+      const sp = Math.sin(camera.pitch);
+      const cy = Math.cos(camera.yaw);
+      const sy = Math.sin(camera.yaw);
+      const pos = {
+        x: camera.distance * cp * cy,
+        y: camera.distance * cp * sy,
+        z: camera.distance * sp
+      };
+      const forward = vNorm(vScale(pos, -1));
+      let right = vNorm(vCross(forward, { x: 0, y: 0, z: 1 }));
+      if (vLen(right) < 1e-6) right = { x: 1, y: 0, z: 0 };
+      const up = vCross(right, forward);
+      const focal = (viewH / 2) / Math.tan(camera.fov / 2);
+      return { pos, forward, right, up, focal };
+    }
+    function project(p, basis) {
+      const rel = vSub(p, basis.pos);
+      const xc = vDot(rel, basis.right);
+      const yc = vDot(rel, basis.up);
+      const zc = vDot(rel, basis.forward);
+      if (zc <= 0.05) return null;
+      return {
+        x: viewW / 2 + basis.focal * xc / zc,
+        y: viewH / 2 - basis.focal * yc / zc,
+        z: zc
+      };
+    }
+
+    const BOLD_FONT = '700 17px "Segoe UI", Arial, sans-serif';
+    const BOLD_SMALL_FONT = '700 12.5px "Segoe UI", Arial, sans-serif';
+    const ITALIC_FONT = 'italic 700 19px Georgia, "Times New Roman", serif';
+
+    let labelQueue = [];
+    function queueLabel(text, pos, color, font, alpha = 1) {
+      labelQueue.push({ text, pos, color, font, alpha });
+    }
+    function flushLabels(basis) {
+      for (let i = 0; i < labelQueue.length; i += 1) {
+        const item = labelQueue[i];
+        const p = project(item.pos, basis);
+        if (!p) continue;
+        ctx.save();
+        ctx.globalAlpha = item.alpha;
+        ctx.font = item.font;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = 'rgba(255,255,255,0.92)';
+        ctx.strokeText(item.text, p.x, p.y);
+        ctx.fillStyle = item.color;
+        ctx.fillText(item.text, p.x, p.y);
+        ctx.restore();
+      }
+    }
+
+    function drawPolyline3D(basis, points, color, width, alpha) {
+      if (points.length < 2) return;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      let started = false;
+      for (let i = 0; i < points.length; i += 1) {
+        const p = project(points[i], basis);
+        if (!p) {
+          started = false;
+          continue;
+        }
+        if (!started) {
+          ctx.moveTo(p.x, p.y);
+          started = true;
+        } else {
+          ctx.lineTo(p.x, p.y);
+        }
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+    function drawLine3D(basis, a, b, color, width, alpha) {
+      drawPolyline3D(basis, [a, b], color, width, alpha);
+    }
+    function drawArrow3D(basis, a, b, color, width, headPx, alpha) {
+      const pa = project(a, basis);
+      const pb = project(b, basis);
+      if (!pa || !pb) return;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = width;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(pa.x, pa.y);
+      ctx.lineTo(pb.x, pb.y);
+      ctx.stroke();
+      let dx = pb.x - pa.x;
+      let dy = pb.y - pa.y;
+      const len = Math.hypot(dx, dy);
+      if (len > 0.5) {
+        dx /= len;
+        dy /= len;
+        const baseX = pb.x - dx * headPx * 1.6;
+        const baseY = pb.y - dy * headPx * 1.6;
+        const nx = -dy;
+        const ny = dx;
+        const half = headPx * 0.55;
+        ctx.beginPath();
+        ctx.moveTo(pb.x, pb.y);
+        ctx.lineTo(baseX + nx * half, baseY + ny * half);
+        ctx.lineTo(baseX - nx * half, baseY - ny * half);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawGrid(basis) {
+      const extent = 3.5;
+      const step = 0.5;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(148,163,184,0.20)';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      for (let v = -extent; v <= extent + 1e-6; v += step) {
+        const a = project({ x: -extent, y: v, z: 0 }, basis);
+        const b = project({ x: extent, y: v, z: 0 }, basis);
+        if (a && b) {
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+        }
+        const c = project({ x: v, y: -extent, z: 0 }, basis);
+        const d = project({ x: v, y: extent, z: 0 }, basis);
+        if (c && d) {
+          ctx.moveTo(c.x, c.y);
+          ctx.lineTo(d.x, d.y);
+        }
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    const IDENTITY3 = [1, 0, 0, 0, 1, 0, 0, 0, 1];
+
+    function drawUnitCircle(basis, M, fillStyle, strokeStyle, dashed, width) {
+      const radius = 1.0;
+      const projected = [];
+      for (let i = 0; i <= 96; i += 1) {
+        const a = i / 96 * TAU;
+        const p = project(applyMat(M, {
+          x: radius * Math.cos(a),
+          y: radius * Math.sin(a),
+          z: 0
+        }), basis);
+        if (!p) return;
+        projected.push(p);
+      }
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(projected[0].x, projected[0].y);
+      for (let i = 1; i < projected.length; i += 1) {
+        ctx.lineTo(projected[i].x, projected[i].y);
+      }
+      ctx.closePath();
+      ctx.fillStyle = fillStyle;
+      ctx.fill();
+      if (dashed) ctx.setLineDash([6, 4]);
+      ctx.strokeStyle = strokeStyle;
+      ctx.lineWidth = width;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawSpaceCircle(basis) {
+      drawUnitCircle(basis, IDENTITY3, 'rgba(100,116,139,0.08)', 'rgba(71,85,105,0.55)', true, 1.6);
+    }
+
+    function drawBodyCircle(basis, R) {
+      drawUnitCircle(basis, R, 'rgba(56,189,248,0.14)', 'rgba(14,165,233,0.62)', false, 1.8);
+    }
+
+    const FIXED_AXES = [
+      { d: E.x, label: 'X' },
+      { d: E.y, label: 'Y' },
+      { d: E.z, label: 'Z' }
+    ];
+    const BODY_AXES = [
+      { d: E.x, color: '#ef4444', label: 'x', labelColor: '#dc2626' },
+      { d: E.y, color: '#22c55e', label: 'y', labelColor: '#16a34a' },
+      { d: E.z, color: '#2563eb', label: 'z', labelColor: '#2563eb' }
+    ];
+
+    function drawFixedAxes(basis) {
+      for (let i = 0; i < FIXED_AXES.length; i += 1) {
+        drawArrow3D(basis, { x: 0, y: 0, z: 0 }, vScale(FIXED_AXES[i].d, 2.05), '#475569', 1.7, 9, 0.95);
+      }
+    }
+    function drawBodyAxes(basis, R) {
+      for (let i = 0; i < BODY_AXES.length; i += 1) {
+        const dir = applyMat(R, BODY_AXES[i].d);
+        drawArrow3D(basis, { x: 0, y: 0, z: 0 }, vScale(dir, 1.5), BODY_AXES[i].color, 2.6, 10, 1);
+      }
+    }
+
+    const CX = 0.68;
+    const CY = 0.42;
+    const CZ = 0.26;
+    const CUBE_FACES = [
+      {
+        color: [239, 68, 68],
+        n: { x: 1, y: 0, z: 0 },
+        v: [[CX, -CY, -CZ], [CX, CY, -CZ], [CX, CY, CZ], [CX, -CY, CZ]]
+      },
+      {
+        color: [249, 115, 22],
+        n: { x: -1, y: 0, z: 0 },
+        v: [[-CX, -CY, CZ], [-CX, CY, CZ], [-CX, CY, -CZ], [-CX, -CY, -CZ]]
+      },
+      {
+        color: [34, 197, 94],
+        n: { x: 0, y: 1, z: 0 },
+        v: [[-CX, CY, -CZ], [CX, CY, -CZ], [CX, CY, CZ], [-CX, CY, CZ]]
+      },
+      {
+        color: [20, 184, 166],
+        n: { x: 0, y: -1, z: 0 },
+        v: [[CX, -CY, -CZ], [-CX, -CY, -CZ], [-CX, -CY, CZ], [CX, -CY, CZ]]
+      },
+      {
+        color: [59, 130, 246],
+        n: { x: 0, y: 0, z: 1 },
+        v: [[-CX, -CY, CZ], [CX, -CY, CZ], [CX, CY, CZ], [-CX, CY, CZ]]
+      },
+      {
+        color: [139, 92, 246],
+        n: { x: 0, y: 0, z: -1 },
+        v: [[CX, -CY, -CZ], [-CX, -CY, -CZ], [-CX, CY, -CZ], [CX, CY, -CZ]]
+      }
+    ];
+
+    function drawCube(basis, R) {
+      const list = [];
+      for (let f = 0; f < CUBE_FACES.length; f += 1) {
+        const face = CUBE_FACES[f];
+        const verts = [];
+        let ok = true;
+        let cx = 0;
+        let cy = 0;
+        let cz = 0;
+        for (let i = 0; i < 4; i += 1) {
+          const w = applyMat(R, {
+            x: face.v[i][0],
+            y: face.v[i][1],
+            z: face.v[i][2]
+          });
+          const p = project(w, basis);
+          if (!p) {
+            ok = false;
+            break;
+          }
+          verts.push(p);
+          cx += w.x;
+          cy += w.y;
+          cz += w.z;
+        }
+        if (!ok) continue;
+        const center = { x: cx / 4, y: cy / 4, z: cz / 4 };
+        const normalW = applyMat(R, face.n);
+        const toCam = vSub(basis.pos, center);
+        const facing = vDot(normalW, toCam) > 0;
+        const depth = vDot(vSub(center, basis.pos), basis.forward);
+        const light = vNorm({ x: 0.35, y: 0.55, z: 0.75 });
+        const diffuse = Math.max(0, vDot(vNorm(normalW), light));
+        const alpha = facing ? 0.34 + 0.14 * diffuse : 0.03;
+        const shade = 0.78 + 0.22 * diffuse;
+        list.push({ verts, depth, facing, alpha, shade, base: face.color });
+      }
+      list.sort((a, b) => b.depth - a.depth);
+      for (let i = 0; i < list.length; i += 1) {
+        const item = list[i];
+        ctx.beginPath();
+        ctx.moveTo(item.verts[0].x, item.verts[0].y);
+        ctx.lineTo(item.verts[1].x, item.verts[1].y);
+        ctx.lineTo(item.verts[2].x, item.verts[2].y);
+        ctx.lineTo(item.verts[3].x, item.verts[3].y);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(' + Math.round(item.base[0] * item.shade) + ',' +
+          Math.round(item.base[1] * item.shade) + ',' +
+          Math.round(item.base[2] * item.shade) + ',' + item.alpha + ')';
+        ctx.fill();
+        ctx.strokeStyle = item.facing ? 'rgba(51,65,85,0.66)' : 'rgba(51,65,85,0.16)';
+        ctx.lineWidth = item.facing ? 1.2 : 0.8;
+        ctx.stroke();
+      }
+      const corner = applyMat(R, { x: CX, y: CY, z: CZ });
+      const pc = project(corner, basis);
+      if (pc) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(pc.x, pc.y, 4.5, 0, TAU);
+        ctx.fillStyle = '#f97316';
+        ctx.fill();
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    function drawGhostFrame(basis, M) {
+      const dirs = [
+        applyMat(M, E.x),
+        applyMat(M, E.y),
+        applyMat(M, E.z)
+      ];
+      ctx.save();
+      ctx.setLineDash([5, 4]);
+      for (let i = 0; i < dirs.length; i += 1) {
+        drawLine3D(basis, { x: 0, y: 0, z: 0 }, vScale(dirs[i], 1.25), BODY_AXES[i].color, 1.8, 0.58);
+      }
+      ctx.restore();
+    }
+
+    function drawArc(basis, s, parts) {
+      const ang = state.angles[s];
+      if (Math.abs(ang) < 0.5 * DEG) return;
+      const u = vNorm(rotationAxis(s, parts));
+      let w = vPerp(arcRef(s, parts), u);
+      if (vLen(w) < 1e-6) w = vPerp(E.y, u);
+      if (vLen(w) < 1e-6) w = vPerp(E.x, u);
+      w = vNorm(w);
+      const side = vCross(u, w);
+      const radius = 1.12 + 0.11 * s;
+      const steps = Math.max(16, Math.ceil(Math.abs(ang) / DEG / 2));
+      const pts = [];
+      for (let i = 0; i <= steps; i += 1) {
+        const t = ang * i / steps;
+        pts.push(vScale(vAdd(vScale(w, Math.cos(t)), vScale(side, Math.sin(t))), radius));
+      }
+      const color = STEP_COLORS[s];
+      drawLine3D(basis, { x: 0, y: 0, z: 0 }, vScale(w, radius), color, 1, 0.3);
+      drawLine3D(basis, { x: 0, y: 0, z: 0 }, pts[pts.length - 1], color, 1, 0.35);
+      drawPolyline3D(basis, pts, color, 2.6, 0.95);
+      const mid = ang / 2;
+      const labelPos = vScale(
+        vAdd(vScale(w, Math.cos(mid)), vScale(side, Math.sin(mid))),
+        radius * 1.15
+      );
+      queueLabel(STEP_SYMS[s], labelPos, color, ITALIC_FONT);
+    }
+
+    function drawActiveAxis(basis, parts) {
+      if (state.animStep < 0) return;
+      const u = vNorm(rotationAxis(state.animStep, parts));
+      drawLine3D(basis, vScale(u, -1.78), vScale(u, 1.78), 'rgba(249,115,22,0.16)', 9, 1);
+      drawArrow3D(basis, { x: 0, y: 0, z: 0 }, vScale(u, 1.78), '#f97316', 2.6, 10, 1);
+      drawArrow3D(basis, { x: 0, y: 0, z: 0 }, vScale(u, -1.78), '#f97316', 2.6, 10, 0.85);
+      queueLabel('转轴', vScale(u, 1.96), '#f97316', BOLD_SMALL_FONT);
+    }
+
+    function draw() {
+      const basis = getBasis();
+      labelQueue = [];
+      const angles = state.angles;
+      const parts = partials(angles);
+      const R = parts.P3;
+
+      ctx.clearRect(0, 0, viewW, viewH);
+
+      drawGrid(basis);
+      if (state.show.circle) {
+        drawSpaceCircle(basis);
+        drawBodyCircle(basis, R);
+      }
+      if (state.show.fixed) drawFixedAxes(basis);
+      if (state.show.cube) drawCube(basis, R);
+
+      if (state.show.frames) {
+        const f1 = Math.abs(angles[0]) > 0.5 * DEG &&
+          (Math.abs(angles[1]) > 0.5 * DEG || Math.abs(angles[2]) > 0.5 * DEG || state.animStep === 1);
+        if (f1) drawGhostFrame(basis, parts.P1);
+        const f2 = (Math.abs(angles[0]) > 0.5 * DEG || Math.abs(angles[1]) > 0.5 * DEG) &&
+          (Math.abs(angles[2]) > 0.5 * DEG || state.animStep === 2);
+        if (f2) drawGhostFrame(basis, parts.P2);
+      }
+
+      if (state.show.arcs) {
+        for (let s = 0; s < 3; s += 1) drawArc(basis, s, parts);
+      }
+      if (state.show.body) drawBodyAxes(basis, R);
+      drawActiveAxis(basis, parts);
+
+      if (state.show.fixed) {
+        for (let i = 0; i < FIXED_AXES.length; i += 1) {
+          queueLabel(FIXED_AXES[i].label, vScale(FIXED_AXES[i].d, 2.2), '#334155', BOLD_FONT);
+        }
+      }
+      if (state.show.body) {
+        for (let i = 0; i < BODY_AXES.length; i += 1) {
+          const dir = applyMat(R, BODY_AXES[i].d);
+          queueLabel(BODY_AXES[i].label, vScale(dir, 1.7), BODY_AXES[i].labelColor, ITALIC_FONT);
+        }
+      }
+      flushLabels(basis);
+    }
+
+    function updateConventionUI() {
+      const seq = axes();
+      const isProper = seq[0] === seq[2];
+      for (let i = 0; i < 3; i += 1) {
+        const isBody = state.intrinsic && i > 0;
+        const letter = isBody ? seq[i] : seq[i].toUpperCase();
+        el['lbl' + i].textContent = '第 ' + (i + 1) + ' 步 · ' + STEP_SYMS[i] +
+          ' 绕' + (isBody ? '本体 ' : '') + letter + ' 轴';
+      }
+      const A = seq[0].toUpperCase();
+      const B = seq[1].toUpperCase();
+      const C = seq[2].toUpperCase();
+      el.convSummary.textContent = A + ' – ' + B + ' – ' + C + ' ' +
+        (state.intrinsic ? '内旋' : '外旋') + ' · ' +
+        (isProper ? '经典欧拉角' : 'Tait-Bryan 角');
+      el.modeNote.textContent = state.intrinsic
+        ? '依次绕本体轴转动，每一步的转轴随刚体一起转动。'
+        : '依次绕空间固定轴转动，转轴在空间中保持不动。';
+      const sub = x => 'R<sub>' + x + '</sub>';
+      el.formula.innerHTML = state.intrinsic
+        ? 'R = ' + sub(A) + '(α) ' + sub(B) + '(β) ' + sub(C) + '(γ)'
+        : 'R = ' + sub(C) + '(γ) ' + sub(B) + '(β) ' + sub(A) + '(α)';
+      const buttons = el.modeSeg.querySelectorAll('button');
+      for (let i = 0; i < buttons.length; i += 1) {
+        const isIntrinsic = buttons[i].dataset.mode === 'intrinsic';
+        buttons[i].classList.toggle('active', isIntrinsic === state.intrinsic);
+      }
+    }
+
+    function syncSliders() {
+      for (let i = 0; i < 3; i += 1) {
+        const deg = state.angles[i] / DEG;
+        if (!state.userAdjusting) {
+          el['ang' + i].value = Math.round(deg * 2) / 2;
+        }
+        el['v' + i].textContent = deg.toFixed(1) + '°';
+      }
+    }
+
+    function syncButtons() {
+      el.btnPlay.textContent = state.playing ? '暂停' : (state.animStep >= 0 ? '继续' : '播放');
+      el.btnStep.disabled = state.animStep >= 0;
+    }
+
+    function updateStepIndicator() {
+      if (state.animStep < 0) {
+        el.stepIndicator.hidden = true;
+        return;
+      }
+      const s = state.animStep;
+      const seq = axes();
+      const isBody = state.intrinsic && s > 0;
+      const letter = isBody ? seq[s] : seq[s].toUpperCase();
+      el.stepIndicator.hidden = false;
+      el.stepIndicator.textContent = '第 ' + (s + 1) + '/3 步 · ' + STEP_SYMS[s] +
+        ' 绕' + (isBody ? '本体 ' : '') + letter + ' 轴';
+    }
+
+    let lastReadout = 0;
+    function updateReadouts(now, force = false) {
+      if (!force && now - lastReadout < 30) return;
+      lastReadout = now;
+      syncSliders();
+      syncButtons();
+      updateStepIndicator();
+      const R = composeAngles(state.angles);
+      for (let i = 0; i < 9; i += 1) {
+        matrixCells[i].textContent = fmt(R[i], 2);
+      }
+    }
+
+    function finishStep(s) {
+      state.angles[s] = state.targets[s];
+      state.demoStep = s + 1;
+      if (state.autoPlay && s < 2) {
+        state.animStep = s + 1;
+        state.animT = 0;
+        state.pendingDelay = STEP_PAUSE;
+      } else {
+        state.animStep = -1;
+        state.animT = 0;
+        state.playing = false;
+      }
+    }
+
+    function updateMotion(dt) {
+      if (!state.playing) return;
+      if (state.animStep < 0) {
+        state.playing = false;
+        return;
+      }
+      if (state.pendingDelay > 0) {
+        state.pendingDelay -= dt * state.speed;
+        if (state.pendingDelay < 0) state.pendingDelay = 0;
+        return;
+      }
+      const s = state.animStep;
+      const target = state.targets[s];
+      if (Math.abs(target) < 0.1 * DEG) {
+        state.angles[s] = target;
+        finishStep(s);
+        return;
+      }
+      state.animT += dt * state.speed / STEP_DURATION;
+      const p = easeInOut(clamp(state.animT, 0, 1));
+      state.angles[s] = p * target;
+      if (state.animT >= 1) finishStep(s);
+    }
+
+    function onConventionChange() {
+      state.animStep = -1;
+      state.animT = 0;
+      state.pendingDelay = 0;
+      state.playing = false;
+      state.autoPlay = false;
+      state.demoStep = 0;
+      updateConventionUI();
+      updateReadouts(performance.now(), true);
+    }
+
+    for (let i = 0; i < 3; i += 1) {
+      (function (index) {
+        const input = el['ang' + index];
+        input.addEventListener('pointerdown', function () {
+          state.userAdjusting = true;
+        });
+        input.addEventListener('input', function () {
+          const rad = parseFloat(input.value) * DEG;
+          state.angles[index] = rad;
+          state.targets[index] = rad;
+          state.animStep = -1;
+          state.animT = 0;
+          state.pendingDelay = 0;
+          state.playing = false;
+          state.autoPlay = false;
+          state.demoStep = 0;
+          updateReadouts(performance.now(), true);
+        });
+      })(i);
+    }
+    window.addEventListener('pointerup', function () {
+      if (state.userAdjusting) {
+        state.userAdjusting = false;
+        updateReadouts(performance.now(), true);
+      }
+    });
+    window.addEventListener('pointercancel', function () {
+      if (state.userAdjusting) {
+        state.userAdjusting = false;
+        updateReadouts(performance.now(), true);
+      }
+    });
+
+    el.seqSelect.addEventListener('change', function () {
+      state.seqKey = el.seqSelect.value;
+      onConventionChange();
+    });
+    el.modeSeg.addEventListener('click', function (event) {
+      const btn = event.target.closest('button[data-mode]');
+      if (!btn) return;
+      state.intrinsic = btn.dataset.mode === 'intrinsic';
+      onConventionChange();
+    });
+
+    el.btnPlay.addEventListener('click', function () {
+      if (state.animStep >= 0) {
+        state.playing = !state.playing;
+      } else {
+        state.angles = [0, 0, 0];
+        state.demoStep = 0;
+        state.animStep = 0;
+        state.animT = 0;
+        state.pendingDelay = 0;
+        state.playing = true;
+        state.autoPlay = true;
+      }
+      updateReadouts(performance.now(), true);
+    });
+
+    el.btnStep.addEventListener('click', function () {
+      if (state.animStep >= 0) return;
+      if (state.demoStep === 0 || state.demoStep >= 3) {
+        state.angles = [0, 0, 0];
+        state.demoStep = 0;
+      }
+      state.animStep = state.demoStep;
+      state.animT = 0;
+      state.pendingDelay = 0;
+      state.playing = true;
+      state.autoPlay = false;
+      updateReadouts(performance.now(), true);
+    });
+
+    el.btnReset.addEventListener('click', function () {
+      state.angles = DEFAULT_DEG.map(d => d * DEG);
+      state.targets = DEFAULT_DEG.map(d => d * DEG);
+      state.demoStep = 0;
+      state.animStep = -1;
+      state.animT = 0;
+      state.pendingDelay = 0;
+      state.playing = false;
+      state.autoPlay = false;
+      updateReadouts(performance.now(), true);
+    });
+
+    el.speed.addEventListener('input', function () {
+      state.speed = parseFloat(el.speed.value);
+      el.vSpeed.textContent = state.speed.toFixed(2) + '×';
+    });
+
+    const checkboxList = [
+      ['chkFixed', 'fixed'],
+      ['chkBody', 'body'],
+      ['chkCube', 'cube'],
+      ['chkFrames', 'frames'],
+      ['chkArcs', 'arcs'],
+      ['chkCircle', 'circle']
+    ];
+    for (let i = 0; i < checkboxList.length; i += 1) {
+      (function (pair) {
+        const box = $(pair[0]);
+        box.checked = state.show[pair[1]];
+        box.addEventListener('change', function () {
+          state.show[pair[1]] = box.checked;
+        });
+      })(checkboxList[i]);
+    }
+
+    function resetView() {
+      camera.yaw = DEFAULT_CAMERA.yaw;
+      camera.pitch = DEFAULT_CAMERA.pitch;
+      camera.distance = DEFAULT_CAMERA.distance;
+    }
+    el.btnView.addEventListener('click', resetView);
+
+    let dragging = false;
+    let lastX = 0;
+    let lastY = 0;
+    canvas.addEventListener('pointerdown', function (event) {
+      if (event.pointerType === 'mouse' && event.button !== 0) return;
+      dragging = true;
+      lastX = event.clientX;
+      lastY = event.clientY;
+      canvas.style.cursor = 'grabbing';
+      if (canvas.setPointerCapture) canvas.setPointerCapture(event.pointerId);
+    });
+    canvas.addEventListener('pointermove', function (event) {
+      if (!dragging) return;
+      const dx = event.clientX - lastX;
+      const dy = event.clientY - lastY;
+      lastX = event.clientX;
+      lastY = event.clientY;
+      camera.yaw -= dx * 0.006;
+      camera.pitch = clamp(camera.pitch + dy * 0.006, -1.35, 1.35);
+    });
+    function endDrag(event) {
+      dragging = false;
+      canvas.style.cursor = 'grab';
+      if (canvas.releasePointerCapture) {
+        try { canvas.releasePointerCapture(event.pointerId); } catch (error) {}
+      }
+    }
+    canvas.addEventListener('pointerup', endDrag);
+    canvas.addEventListener('pointercancel', endDrag);
+    canvas.addEventListener('wheel', function (event) {
+      event.preventDefault();
+      camera.distance = clamp(camera.distance * Math.exp(event.deltaY * 0.001), 3, 16);
+    }, { passive: false });
+    canvas.addEventListener('contextmenu', function (event) { event.preventDefault(); });
+
+    function resize() {
+      const rect = stage.getBoundingClientRect();
+      viewW = Math.max(1, rect.width);
+      viewH = Math.max(1, rect.height);
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.round(viewW * dpr);
+      canvas.height = Math.round(viewH * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      draw();
+    }
+    new ResizeObserver(resize).observe(stage);
+    window.addEventListener('resize', resize);
+    resize();
+
+    updateConventionUI();
+    updateReadouts(performance.now(), true);
+
+    let lastTime = performance.now();
+    function animate(now) {
+      requestAnimationFrame(animate);
+      const dt = Math.min(0.05, Math.max(0, (now - lastTime) / 1000));
+      lastTime = now;
+      updateMotion(dt);
+      draw();
+      updateReadouts(now);
+    }
+    requestAnimationFrame(animate);
+
+    window.__eulerConventionsReady = true;
+  })();
+  </script>
+</body>
+</html>
