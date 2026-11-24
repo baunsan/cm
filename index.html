@@ -3,341 +3,466 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>两体引力轨道模拟</title>
+<link rel="icon" href="data:,">
+<title>分析力学 · 交互式可视化</title>
 <style>
-  :root { color-scheme: light; }
+  :root {
+    --ink: #0f172a;
+    --muted: #64748b;
+    --faint: #94a3b8;
+    --line: #d6dbe4;
+    --panel: #ffffff;
+    --blue: #2563eb;
+    --violet: #7c3aed;
+    --amber: #d97706;
+    --teal: #0d9488;
+    --shadow: 0 2px 12px rgba(15,23,42,.06);
+    --shadow-hover: 0 10px 28px rgba(15,23,42,.12);
+  }
   * { box-sizing: border-box; }
   body {
-    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
-    margin: 0; padding: 24px;
-    background: #f5f6f8; color: #222;
-    display: flex; flex-direction: column; align-items: center;
+    margin: 0;
+    padding: 40px 24px 56px;
+    background:
+      radial-gradient(1100px 520px at 50% -160px, #ffffff 0%, rgba(255,255,255,0) 70%),
+      #f5f6f8;
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
-  h1 { font-size: 20px; margin: 0 0 4px; }
-  .sub { color: #666; font-size: 13px; margin-bottom: 16px; }
-  .wrap { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
-  canvas {
-    background: #fff; border: 1px solid #d0d4da; border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0,0,0,.08);
+  .page { max-width: 1180px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 40px; }
+  .eyebrow {
+    display: inline-block;
+    font-size: 11.5px;
+    letter-spacing: 2.2px;
+    color: var(--blue);
+    background: #eff6ff;
+    border: 1px solid #dbeafe;
+    border-radius: 999px;
+    padding: 5px 14px;
+    margin-bottom: 16px;
+    font-weight: 600;
   }
-  .panel {
-    background: #fff; border: 1px solid #d0d4da; border-radius: 10px;
-    padding: 18px 20px; width: 280px; box-shadow: 0 2px 10px rgba(0,0,0,.08);
+  h1 {
+    font-size: 30px;
+    line-height: 1.25;
+    margin: 0 0 12px;
+    letter-spacing: .5px;
   }
-  .panel h2 { font-size: 15px; margin: 0 0 12px; }
-  .row { margin-bottom: 14px; }
-  .row label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
-  .row label .val { font-variant-numeric: tabular-nums; color: #2563eb; font-weight: 600; }
-  input[type=range] { width: 100%; accent-color: #2563eb; }
-  .buttons { display: flex; gap: 8px; margin: 6px 0 12px; }
-  button {
-    flex: 1; padding: 8px 0; border: 1px solid #cbd2dc; border-radius: 8px;
-    background: #fff; font-size: 14px; cursor: pointer;
+  h1 span { color: var(--faint); font-weight: 400; }
+  .lede {
+    max-width: 660px;
+    margin: 0 auto;
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--muted);
   }
-  button:hover { background: #eef2f7; }
-  button.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
-  button.primary:hover { background: #1d4ed8; }
-  .status { font-size: 13px; color: #444; line-height: 1.6; }
-  .status b { color: #0f172a; }
-  .legend { font-size: 12px; color: #666; margin-top: 10px; line-height: 1.8; }
-  .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 4px; }
+  .lede code {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    color: #1e3a8a;
+    background: #eef2f9;
+    border: 1px solid #dde5f1;
+    padding: 1px 6px;
+    border-radius: 5px;
+  }
+
+  section { margin-bottom: 34px; }
+  .sec-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 2px 14px;
+  }
+  .sec-head .dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    flex: none;
+  }
+  .sec-head h2 {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: .3px;
+    margin: 0;
+    color: #1e293b;
+  }
+  .sec-head .count {
+    font-size: 11px;
+    color: var(--faint);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  .sec-head .rule {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--line), rgba(214,219,228,0));
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 20px 17px;
+    text-decoration: none;
+    color: inherit;
+    box-shadow: var(--shadow);
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    overflow: hidden;
+    outline: none;
+  }
+  .card::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--accent, var(--blue));
+    opacity: .85;
+  }
+  .card:hover,
+  .card:focus-visible {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-hover);
+    border-color: #c3cdda;
+  }
+  .card:focus-visible { box-shadow: 0 0 0 3px rgba(37,99,235,.22), var(--shadow-hover); }
+
+  .card .top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .card h3 {
+    font-size: 15.5px;
+    font-weight: 650;
+    margin: 0;
+    line-height: 1.35;
+    color: #0f172a;
+  }
+  .card .idx {
+    font-size: 11px;
+    color: #cbd5e1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .5px;
+    flex: none;
+  }
+  .card p {
+    margin: 0 0 14px;
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: var(--muted);
+    flex: 1;
+  }
+  .card .foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .tag {
+    font-size: 10.5px;
+    color: var(--accent, var(--blue));
+    background: color-mix(in srgb, var(--accent, var(--blue)) 8%, #ffffff);
+    border: 1px solid color-mix(in srgb, var(--accent, var(--blue)) 22%, #ffffff);
+    border-radius: 999px;
+    padding: 2.5px 9px;
+    font-weight: 600;
+    letter-spacing: .2px;
+    white-space: nowrap;
+  }
+  .card .go {
+    font-size: 12px;
+    color: var(--faint);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: color .18s ease, gap .18s ease;
+    white-space: nowrap;
+  }
+  .card .go .arrow { font-size: 13px; line-height: 1; }
+  .card:hover .go,
+  .card:focus-visible .go { color: var(--accent, var(--blue)); gap: 7px; }
+
+  footer {
+    margin-top: 44px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    text-align: center;
+    font-size: 11.5px;
+    line-height: 1.8;
+    color: var(--faint);
+  }
+
+  @media (max-width: 560px) {
+    body { padding: 28px 16px 40px; }
+    h1 { font-size: 23px; }
+    .lede { font-size: 13px; }
+    .grid { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card { transition: none; }
+    .card:hover, .card:focus-visible { transform: none; }
+  }
 </style>
 </head>
 <body>
-  <h1>中心力问题 · 两体引力轨道</h1>
-  <div class="sub">m1（蓝）与 m2（红）绕质心运动，虚线为两质点连线（始终穿过质心）</div>
+<div class="page">
 
-  <div class="wrap">
-    <canvas id="cv" width="700" height="700"></canvas>
+  <header>
+    <div class="eyebrow">ANALYTICAL MECHANICS</div>
+    <h1>分析力学 <span>·</span> 交互式可视化</h1>
+    <p class="lede">
+      用浏览器中的实时动画理解中心力轨道、刚体转动、振动混沌与相对论。
+      选择一个主题进入演示，拖动参数即可观察系统的演化。
+    </p>
+  </header>
 
-    <div class="panel">
-      <h2>参数</h2>
-      <div class="row">
-        <label>质量比 m2 / m1 <span class="val" id="qv">1.00</span></label>
-        <input type="range" id="q" min="-1" max="1" step="0.01" value="0">
-      </div>
-      <div class="row">
-        <label>偏心率 e <span class="val" id="ev">0.50</span></label>
-        <input type="range" id="e" min="0" max="1.4" step="0.01" value="0.5">
-      </div>
-
-      <div class="buttons">
-        <button id="btnPlay" class="primary">暂停</button>
-        <button id="btnReset">重置</button>
-      </div>
-
-      <div class="row">
-        <label>速度 <span class="val" id="spv">1.0×</span></label>
-        <input type="range" id="speed" min="0.2" max="4" step="0.1" value="1">
-      </div>
-      <div class="row">
-        <label>进度 <span class="val" id="frv">0</span></label>
-        <input type="range" id="progress" min="0" max="3000" step="1" value="0">
-      </div>
-
-      <div class="status" id="status"></div>
-      <div class="legend">
-        <span><span class="sw" style="background:#2563eb"></span>m1</span>
-        <span><span class="sw" style="background:#dc2626"></span>m2</span>
-        <span><span class="sw" style="background:#999"></span>连线</span>
-        <span><span class="sw" style="background:#111"></span>质心</span>
-      </div>
+  <section>
+    <div class="sec-head">
+      <span class="dot" style="background:#2563eb"></span>
+      <h2>中心力与轨道</h2>
+      <span class="count">2</span>
+      <span class="rule"></span>
     </div>
-  </div>
+    <div class="grid">
 
-<script>
-(function () {
-  const G = 1.0, M1 = 1.0;
-  const cv = document.getElementById('cv');
-  const ctx = cv.getContext('2d');
+      <a class="card" href="two_body_orbits.html" style="--accent:#2563eb">
+        <div class="top">
+          <h3>两体引力轨道</h3>
+          <span class="idx">01</span>
+        </div>
+        <p>双星绕共同质心运动，观察质量比与偏心率对轨道形状和周期的影响。</p>
+        <div class="foot">
+          <span class="tag">中心力 · 开普勒</span>
+          <span class="go">进入演示 <span class="arrow">→</span></span>
+        </div>
+      </a>
 
-  const qEl = document.getElementById('q');
-  const eEl = document.getElementById('e');
-  const speedEl = document.getElementById('speed');
-  const progressEl = document.getElementById('progress');
-  const btnPlay = document.getElementById('btnPlay');
-  const btnReset = document.getElementById('btnReset');
-  const qv = document.getElementById('qv');
-  const ev = document.getElementById('ev');
-  const spv = document.getElementById('spv');
-  const frv = document.getElementById('frv');
-  const statusEl = document.getElementById('status');
+      <a class="card" href="perihelion_precession.html" style="--accent:#2563eb">
+        <div class="top">
+          <h3>近日点进动</h3>
+          <span class="idx">02</span>
+        </div>
+        <p>史瓦西时空中的束缚测地线，3M u² 修正让椭圆不再闭合，近日点逐圈前移。</p>
+        <div class="foot">
+          <span class="tag">广义相对论</span>
+          <span class="go">进入演示 <span class="arrow">→</span></span>
+        </div>
+      </a>
 
-  function getQ() { return Math.pow(10, parseFloat(qEl.value)); }
-  const FIXED_P = 1.0;                       // 半通径固定，不再作为可调参数
-  function getP() { return FIXED_P; }
-  function getE() { return parseFloat(eEl.value); }
+    </div>
+  </section>
 
-  // ---------- 物理：RK4 积分两体系统 ----------
-  function deriv(s, m2) {
-    const rx = s[4] - s[0], ry = s[5] - s[1];
-    const r3 = Math.pow(rx * rx + ry * ry, 1.5);
-    const a1x = G * m2 * rx / r3, a1y = G * m2 * ry / r3;
-    const a2x = -G * M1 * rx / r3, a2y = -G * M1 * ry / r3;
-    return [s[2], s[3], a1x, a1y, s[6], s[7], a2x, a2y];
-  }
+  <section>
+    <div class="sec-head">
+      <span class="dot" style="background:#7c3aed"></span>
+      <h2>刚体转动</h2>
+      <span class="count">4</span>
+      <span class="rule"></span>
+    </div>
+    <div class="grid">
 
-  function rk4step(s, dt, m2) {
-    const k1 = deriv(s, m2);
-    const s2 = s.map((v, j) => v + 0.5 * dt * k1[j]);
-    const k2 = deriv(s2, m2);
-    const s3 = s.map((v, j) => v + 0.5 * dt * k2[j]);
-    const k3 = deriv(s3, m2);
-    const s4 = s.map((v, j) => v + dt * k3[j]);
-    const k4 = deriv(s4, m2);
-    return s.map((v, j) => v + dt / 6 * (k1[j] + 2 * k2[j] + 2 * k3[j] + k4[j]));
-  }
+      <a class="card" href="euler_angles_conventions.html" style="--accent:#7c3aed">
+        <div class="top">
+          <h3>欧拉角 24 种约定</h3>
+          <span class="idx">03</span>
+        </div>
+        <p>分步转动演示刚体姿态的多种欧拉角约定，理清内旋与外旋的区别。</p>
+        <div class="foot">
+          <span class="tag">姿态运动学</span>
+          <span class="go">进入演示 <span class="arrow">→</span></span>
+        </div>
+      </a>
 
-  function buildTrajectory(q, p, e) {
-    const m2 = q * M1;
-    const M = M1 + m2;
-    const f1 = m2 / M, f2 = M1 / M;
+      <a class="card" href="dzhanibekov.html" style="--accent:#7c3aed">
+        <div class="top">
+          <h3>中间轴定理</h3>
+          <span class="idx">04</span>
+        </div>
+        <p>自由刚体绕中间主惯性轴旋转不稳定，在空间中呈现周期性翻转。</p>
+        <div class="foot">
+          <span class="tag">自由刚体</span>
+          <span class="go">进入演示 <span class="arrow">→</span></span>
+        </div>
+      </a>
 
-    // 初始时刻取真近点角 φ = -π/2（近心点前 90°）：
-    //   相对位置 r_rel = (0, -p)，相对速度 v_rel = sqrt(GM/p)·(1, e)
-    const rRel = [0, -p];
-    const hOverP = Math.sqrt(G * M / p);
-    const vRel = [hOverP, e * hOverP];
+      <a class="card" href="gyroscope_navigation.html" style="--accent:#7c3aed">
+        <div class="top">
+          <h3>回旋仪导航</h3>
+          <span class="idx">05</span>
+        </div>
+        <p>高速自转的陀螺在惯性空间中保持指向，这正是惯性导航的物理基础。</p>
+        <div class="foot">
+          <span class="tag">陀螺 · 惯性</span>
+          <span class="go">进入演示 <span class="arrow">→</span></span>
+        </div>
+      </a>
 
-    let y = [
-      -f1 * rRel[0], -f1 * rRel[1],  -f1 * vRel[0], -f1 * vRel[1],
-       f2 * rRel[0],  f2 * rRel[1],   f2 * vRel[0],  f2 * vRel[1],
-    ];
+      <a class="card" href="lagrange_top.html" style="--accent:#7c3aed">
+        <div class="top">
+          <h3>拉格朗日陀螺</h3>
+          <span class="idx">06</span>
+        </div>
+        <p>重力场中固定支点的对称陀螺，展示进动 φ、章动 θ 与自转 ψ 的耦合。</p>
+        <div class="foot">
+          <span class="tag">对称陀螺</span>
+          <span class="go">进入演示 <span class="arrow">→</span></span>
+        </div>
+      </a>
 
-    let t0, t1;
-    if (e < 1) {
-      const a = p / (1 - e * e);
-      const T = 2 * Math.PI * Math.sqrt(a * a * a / (G * M));
-      t0 = 0; t1 = Math.min(2 * T, 60);
-    } else {
-      t0 = -15; t1 = 15;
-    }
+    </div>
+  </section>
 
-    const n = 3000;
-    const dt = (t1 - t0) / n;
-    const r1x = new Float64Array(n), r1y = new Float64Array(n);
-    const r2x = new Float64Array(n), r2y = new Float64Array(n);
-    r1x[0] = y[0]; r1y[0] = y[1]; r2x[0] = y[4]; r2y[0] = y[5];
+  <section>
+    <div class="sec-head">
+      <span class="dot" style="background:#d97706"></span>
+      <h2>振动与混沌</h2>
+      <span class="count">4</span>
+      <span class="rule"></span>
+    </div>
+    <div class="grid">
 
-    for (let i = 0; i < n - 1; i++) {
-      y = rk4step(y, dt, m2);
-      r1x[i + 1] = y[0]; r1y[i + 1] = y[1];
-      r2x[i + 1] = y[4]; r2y[i + 1] = y[5];
-    }
-    return { r1x, r1y, r2x, r2y, n };
-  }
+      <a class="card" href="coupled_pendulum.html" style="--accent:#d97706">
+        <div class="top">
+          <h3>耦合摆</h3>
+          <span class="idx">07</span>
+        </div>
+        <p>两个单摆经弹簧耦合，任意小振动都分解为同相模与反相模的叠加。</p>
+        <div class="foot">
+          <span class="tag">简正模</span>
+          <span class="go">进入演示 <span class="arrow">→</span></span>
+        </div>
+      </a>
 
-  function computeBounds(traj, e) {
-    let xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity;
-    if (e < 1) {
-      for (let i = 0; i < traj.n; i++) {
-        xmin = Math.min(xmin, traj.r1x[i], traj.r2x[i]);
-        xmax = Math.max(xmax, traj.r1x[i], traj.r2x[i]);
-        ymin = Math.min(ymin, traj.r1y[i], traj.r2y[i]);
-        ymax = Math.max(ymax, traj.r1y[i], traj.r2y[i]);
-      }
-    } else {
-      const R = 4 * getP();
-      xmin = -R; xmax = R; ymin = -R; ymax = R;
-    }
-    return { xmin, xmax, ymin, ymax };
-  }
+      <a class="card" href="double_pendulum_chaos.html" style="--accent:#d97706">
+        <div class="top">
+          <h3>双摆 · 初值敏感</h3>
+          <span class="idx">08</span>
+        </div>
+        <p>极小的初值差异迅速放大，在确定性的方程中呈现混沌运动。</p>
+        <div class="foot">
+          <span class="tag">混沌</span>
+          <span class="go">进入演示 <span class="arrow">→</span></span>
+        </div>
+      </a>
 
-  // ---------- 状态 ----------
-  let traj = null, bounds = null;
-  let frame = 0, playing = true;
-  let last = performance.now(), acc = 0;
-  let scrubbing = false;
+      <a class="card" href="forced_damped_oscillation.html" style="--accent:#d97706">
+        <div class="top">
+          <h3>受迫阻尼振动</h3>
+          <span class="idx">09</span>
+        </div>
+        <p>驱动力频率与阻尼系数共同决定稳态振幅，观察共振峰的移动。</p>
+        <div class="foot">
+          <span class="tag">共振</span>
+          <span class="go">进入演示 <span class="arrow">→</span></span>
+        </div>
+      </a>
 
-  function rebuild() {
-    const q = getQ(), p = getP(), e = getE();
-    traj = buildTrajectory(q, p, e);
-    bounds = computeBounds(traj, e);
-    progressEl.max = traj.n - 1;
-    frame = 0; acc = 0;
-    updateReadouts();
-  }
+      <a class="card" href="single_pendulum_phase_space.html" style="--accent:#d97706">
+        <div class="top">
+          <h3>单摆 · 相空间</h3>
+          <span class="idx">10</span>
+        </div>
+        <p>在相平面中观察摆动、转动与分界线，理解单摆的全局动力学。</p>
+        <div class="foot">
+          <span class="tag">相空间</span>
+          <span class="go">进入演示 <span class="arrow">→</span></span>
+        </div>
+      </a>
 
-  function orbitType(e) {
-    if (e === 0) return '圆轨道';
-    if (e < 1)  return '椭圆轨道';
-    if (e === 1) return '抛物线轨道';
-    return '双曲线轨道';
-  }
+    </div>
+  </section>
 
-  function updateReadouts() {
-    const q = getQ(), p = getP(), e = getE();
-    qv.textContent = q.toFixed(2);
-    ev.textContent = e.toFixed(2);
-    spv.textContent = parseFloat(speedEl.value).toFixed(1) + '×';
-    statusEl.innerHTML =
-      '<b>' + orbitType(e) + '</b><br>' +
-      'm1 = 1.00, m2 = ' + q.toFixed(2) + '<br>' +
-      '总质量 M = ' + (1 + q).toFixed(2) + '<br>' +
-      '半通径 p = ' + p.toFixed(2) + '（固定）';
-  }
+  <section>
+    <div class="sec-head">
+      <span class="dot" style="background:#0d9488"></span>
+      <h2>变分</h2>
+      <span class="count">1</span>
+      <span class="rule"></span>
+    </div>
+    <div class="grid">
 
-  // ---------- 渲染 ----------
-  function draw(i) {
-    const w = cv.width, h = cv.height;
-    ctx.clearRect(0, 0, w, h);
+      <a class="card" href="brachistochrone.html" style="--accent:#0d9488">
+        <div class="top">
+          <h3>最速降线</h3>
+          <span class="idx">11</span>
+        </div>
+        <p>在重力场中寻找最快下滑路径，摆线是变分法给出的经典答案。</p>
+        <div class="foot">
+          <span class="tag">变分法</span>
+          <span class="go">进入演示 <span class="arrow">→</span></span>
+        </div>
+      </a>
 
-    const b = bounds;
-    const sx = (b.xmax - b.xmin) || 1, sy = (b.ymax - b.ymin) || 1;
-    const pad = 0.08;
-    const scale = Math.min(w / (sx * (1 + 2 * pad)), h / (sy * (1 + 2 * pad)));
-    const cx = (b.xmin + b.xmax) / 2, cy = (b.ymin + b.ymax) / 2;
-    const X = x => w / 2 + (x - cx) * scale;
-    const Y = y => h / 2 - (y - cy) * scale;
+    </div>
+  </section>
 
-    // 完整轨道轨迹
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = 'rgba(37,99,235,0.35)';
-    ctx.beginPath();
-    for (let k = 0; k < traj.n; k++) {
-      const x = X(traj.r1x[k]), y = Y(traj.r1y[k]);
-      k ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
-    }
-    ctx.stroke();
+  <section>
+    <div class="sec-head">
+      <span class="dot" style="background:#e11d48"></span>
+      <h2>相对论</h2>
+      <span class="count">1</span>
+      <span class="rule"></span>
+    </div>
+    <div class="grid">
 
-    ctx.strokeStyle = 'rgba(220,38,38,0.35)';
-    ctx.beginPath();
-    for (let k = 0; k < traj.n; k++) {
-      const x = X(traj.r2x[k]), y = Y(traj.r2y[k]);
-      k ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
-    }
-    ctx.stroke();
+      <a class="card" href="relativity_of_simultaneity.html" style="--accent:#e11d48">
+        <div class="top">
+          <h3>同时的相对性</h3>
+          <span class="idx">12</span>
+        </div>
+        <p>在一个惯性系中同时发生的异地事件，在另一个惯性系中并不同时。</p>
+        <div class="foot">
+          <span class="tag">狭义相对论</span>
+          <span class="go">进入演示 <span class="arrow">→</span></span>
+        </div>
+      </a>
 
-    // 两质点连线（始终穿过质心）
-    const ax = X(traj.r1x[i]), ay = Y(traj.r1y[i]);
-    const bx = X(traj.r2x[i]), by = Y(traj.r2y[i]);
-    ctx.save();
-    ctx.strokeStyle = 'rgba(100,100,100,0.9)';
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([6, 4]);
-    ctx.beginPath();
-    ctx.moveTo(ax, ay);
-    ctx.lineTo(bx, by);
-    ctx.stroke();
-    ctx.restore();
+    </div>
+  </section>
 
-    // 质心
-    ctx.strokeStyle = '#111';
-    ctx.lineWidth = 2;
-    const ox = X(0), oy = Y(0);
-    ctx.beginPath();
-    ctx.moveTo(ox - 7, oy); ctx.lineTo(ox + 7, oy);
-    ctx.moveTo(ox, oy - 7); ctx.lineTo(ox, oy + 7);
-    ctx.stroke();
+  <section>
+    <div class="sec-head">
+      <span class="dot" style="background:#0284c7"></span>
+      <h2>非惯性系</h2>
+      <span class="count">1</span>
+      <span class="rule"></span>
+    </div>
+    <div class="grid">
 
-    // 质点
-    ctx.fillStyle = '#2563eb';
-    ctx.beginPath(); ctx.arc(ax, ay, 7, 0, 2 * Math.PI); ctx.fill();
-    ctx.fillStyle = '#dc2626';
-    ctx.beginPath(); ctx.arc(bx, by, 7, 0, 2 * Math.PI); ctx.fill();
+      <a class="card" href="rotating_disk_frames.html" style="--accent:#0284c7">
+        <div class="top">
+          <h3>转动参考系</h3>
+          <span class="idx">13</span>
+        </div>
+        <p>站在旋转圆盘上，感受离心力与科里奥利力如何改写运动方程。</p>
+        <div class="foot">
+          <span class="tag">惯性力</span>
+          <span class="go">进入演示 <span class="arrow">→</span></span>
+        </div>
+      </a>
 
-    // 标签
-    ctx.font = '13px -apple-system, sans-serif';
-    ctx.fillStyle = '#2563eb';
-    ctx.fillText('m1', ax + 10, ay - 8);
-    ctx.fillStyle = '#dc2626';
-    ctx.fillText('m2', bx + 10, by - 8);
-    ctx.fillStyle = '#111';
-    ctx.fillText('CM', ox + 10, oy - 8);
-  }
+    </div>
+  </section>
 
-  // ---------- 动画循环 ----------
-  function loop(now) {
-    const dtMs = now - last; last = now;
-    const speed = parseFloat(speedEl.value);
-    const stepsPerSec = 300 * speed;
+  <footer>
+    共 13 个交互式演示 · 全部使用原生 JavaScript 与 Canvas 实时计算与渲染
+  </footer>
 
-    if (playing && !scrubbing) {
-      acc += dtMs / 1000 * stepsPerSec;
-      if (acc >= 1) {
-        frame = (frame + Math.floor(acc)) % traj.n;
-        acc = acc % 1;
-        progressEl.value = frame;
-        frv.textContent = frame;
-      }
-    }
-    draw(frame);
-    requestAnimationFrame(loop);
-  }
-
-  // ---------- 事件 ----------
-  function onParam() { rebuild(); if (!playing) draw(frame); }
-  qEl.addEventListener('input', onParam);
-  eEl.addEventListener('input', onParam);
-
-  speedEl.addEventListener('input', updateReadouts);
-
-  btnPlay.addEventListener('click', () => {
-    playing = !playing;
-    btnPlay.textContent = playing ? '暂停' : '播放';
-    btnPlay.classList.toggle('primary', playing);
-  });
-
-  btnReset.addEventListener('click', () => {
-    frame = 0; acc = 0; scrubbing = false;
-    progressEl.value = 0; frv.textContent = '0';
-  });
-
-  progressEl.addEventListener('input', () => {
-    scrubbing = true;
-    frame = parseInt(progressEl.value, 10) || 0;
-    frv.textContent = frame;
-    draw(frame);
-  });
-  progressEl.addEventListener('change', () => {
-    scrubbing = false; acc = 0;
-  });
-
-  // ---------- 启动 ----------
-  rebuild();
-  draw(0);
-  requestAnimationFrame(loop);
-})();
-</script>
+</div>
 </body>
 </html>
