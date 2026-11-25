@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>刘维尔定理 · 相空间面积守恒</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    margin: 0; padding: 18px 22px 22px;
+    background: #f5f6f8; color: #222;
+    display: flex; flex-direction: column;
+  }
+  header { max-width: 1240px; width: 100%; margin: 0 auto 12px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #666; font-size: 13px; line-height: 1.7; }
+  .sub code {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12.5px; color: #1e3a8a;
+    background: #eef2f9; border: 1px solid #dde5f1;
+    padding: 1px 6px; border-radius: 5px;
+  }
+  .wrap {
+    max-width: 1240px; width: 100%; margin: 0 auto;
+    flex: 1; min-height: 0; display: flex; gap: 18px;
+  }
+  .left { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .card {
+    background: #fff; border: 1px solid #d0d4da; border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.06);
+  }
+  #phaseCard {
+    flex: 1; min-height: 360px; display: flex; flex-direction: column;
+    padding: 9px 14px 10px;
+  }
+  .plot-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 0 2px 7px; font-size: 12px; color: #64748b;
+  }
+  .plot-head b { color: #334155; font-weight: 600; }
+  .note-mini { color: #94a3b8; font-size: 11px; margin-left: 8px; white-space: nowrap; }
+  .head-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+  .legend { display: flex; align-items: center; gap: 12px; font-size: 11px; color: #64748b; }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+  .sw { display: inline-block; width: 16px; height: 0; vertical-align: 3px; }
+  .sw.blob {
+    height: 11px; width: 15px; border: 1.5px solid #2563eb; border-radius: 3px;
+    background: rgba(37,99,235,.10); vertical-align: -2px;
+  }
+  .phaseWrap { flex: 1; min-height: 0; position: relative; }
+  #phase {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    display: block; cursor: crosshair; touch-action: none;
+  }
+
+  aside {
+    width: 342px; flex: 0 0 342px;
+    background: #fff; border: 1px solid #d0d4da; border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.06);
+    padding: 16px 18px; overflow-y: auto;
+  }
+  aside h2 { font-size: 14px; margin: 0 0 10px; letter-spacing: .3px; }
+  aside h2:not(:first-of-type) { margin-top: 16px; }
+  .mini {
+    background: #f7f9fc; border: 1px solid #e3e8ef; border-radius: 9px;
+    padding: 8px 10px 4px; margin-bottom: 16px;
+  }
+  .mini-head {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 11.5px; color: #64748b; padding: 0 2px 4px;
+  }
+  .mini-head b { color: #334155; font-weight: 600; }
+  .mini-head span:last-child {
+    font-variant-numeric: tabular-nums; color: #2563eb; font-weight: 600;
+  }
+  #mini { width: 100%; height: 138px; display: block; }
+  .row { margin-bottom: 11px; }
+  .dis { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; margin-bottom: 2px; }
+  .dis .val { font-variant-numeric: tabular-nums; color: #2563eb; font-weight: 600; font-size: 12.5px; }
+  input[type=range] { width: 100%; accent-color: #2563eb; }
+  .buttons { display: flex; gap: 8px; }
+  button {
+    flex: 1; padding: 7px 0; border: 1px solid #cbd2dc; border-radius: 8px;
+    background: #fff; font-size: 12.5px; cursor: pointer; color: #222;
+    transition: background .15s, border-color .15s;
+  }
+  button:hover { background: #eef2f7; }
+  button.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+  button.primary:hover { background: #1d4ed8; }
+  button.active { background: #eff6ff; border-color: #bfdbfe; color: #2563eb; font-weight: 600; }
+  button:active { transform: translateY(1px); }
+
+  .tgbtn {
+    flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 9px; border: 1px solid #cbd5e1; border-radius: 999px;
+    background: #fff; color: #64748b; font-size: 11.5px; line-height: 1.2;
+    cursor: pointer; user-select: none; white-space: nowrap;
+  }
+  .tgbtn i { display: inline-block; width: 11px; height: 0; vertical-align: 3px; }
+  .tgbtn i.trail { border-top: 1.6px dashed #ea580c; }
+  .tgbtn i.contour { border-top: 1.4px solid #94a3b8; }
+  .tgbtn i.field { border-top: 1.2px solid #94a3b8; }
+  .tgbtn:hover { background: #f1f5f9; }
+  .tgbtn.active { background: #eff6ff; border-color: #bfdbfe; color: #2563eb; }
+  .tgbtn.active:hover { background: #e3efff; }
+
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat {
+    background: #f7f9fc; border: 1px solid #e3e8ef; border-radius: 8px;
+    padding: 7px 9px; font-size: 11px; color: #6b7280;
+  }
+  .stat b { display: block; font-size: 14px; color: #0f172a; font-variant-numeric: tabular-nums; }
+  .stat b span { font-size: 11px; font-weight: 500; color: #94a3b8; }
+  .stat b.txt { font-size: 12.5px; line-height: 20px; font-weight: 600; }
+
+  .eq {
+    margin-top: 12px; padding: 9px 11px; border-radius: 8px;
+    background: #f7f9fc; border: 1px solid #e8ebf0;
+    font-size: 11.5px; color: #475569; line-height: 1.9;
+  }
+  .eq b { color: #334155; font-weight: 600; }
+  .eq code { font-family: ui-monospace, "SF Mono", Menlo, monospace; color: #1e3a8a; font-size: 11.5px; }
+  .desc { font-size: 12px; color: #475569; margin-top: 10px; min-height: 36px; line-height: 1.65; }
+  .hint { font-size: 11px; color: #94a3b8; line-height: 1.7; margin: 10px 0 0; font-variant-numeric: tabular-nums; }
+
+  @media (max-width: 900px) {
+    body { padding: 14px; height: auto; min-height: 100%; overflow-y: auto; }
+    .wrap { flex-direction: column; }
+    .left { flex: 0 0 auto; }
+    .left, aside { width: 100%; min-width: 0; }
+    #phaseCard { height: 440px; flex: 0 0 auto; }
+    .plot-head { flex-wrap: wrap; }
+    .legend { flex-wrap: wrap; }
+    .note-mini { display: none; }
+    aside { flex: 0 0 auto; overflow: visible; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>刘维尔定理 · 相空间面积守恒</h1>
+    <div class="sub">
+      <code>dq/dt = ∂H/∂p</code> &nbsp;<code>dp/dt = −∂H/∂q</code>
+      &nbsp;一团初始条件的相体积在演化中保持不变：形状被拉伸、折叠，面积却恒定。
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="left">
+      <div class="card" id="phaseCard">
+        <div class="plot-head">
+          <span><b>相空间 q–p</b><span class="note-mini" id="phaseNote">单摆：相体积就是面积</span></span>
+          <div class="head-right">
+            <span class="legend">
+              <span><i class="sw blob"></i>相空间体积元</span>
+            </span>
+            <button class="tgbtn active" data-view="trails" type="button" aria-pressed="true"><i class="trail"></i>角点轨迹</button>
+            <button class="tgbtn active" data-view="contours" type="button" aria-pressed="true"><i class="contour"></i>等值线</button>
+            <button class="tgbtn active" data-view="field" type="button" aria-pressed="true"><i class="field"></i>矢量场</button>
+          </div>
+        </div>
+        <div class="phaseWrap">
+          <canvas id="phase"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <aside>
+      <div class="mini">
+        <div class="mini-head"><span><b>面积比 A(t)/A₀</b></span><span id="miniRatio">1.0000</span></div>
+        <canvas id="mini"></canvas>
+      </div>
+
+      <h2>播放</h2>
+      <div class="row">
+        <div class="dis"><label for="speed">播放速度</label><span class="val" id="vSpeed">1.0×</span></div>
+        <input type="range" id="speed" min="0.25" max="2.5" step="0.05" value="1">
+      </div>
+      <div class="buttons">
+        <button id="toggle" class="primary" type="button">暂停</button>
+        <button id="reset" type="button">重置</button>
+      </div>
+
+      <h2>实时读数</h2>
+      <div class="stats">
+        <div class="stat">无量纲时间 τ<b id="ro-t">0.00</b></div>
+        <div class="stat">相对误差 δA/A<b id="ro-err">0.000%</b></div>
+        <div class="stat">面积 A(t)<b id="ro-a">0.000</b></div>
+        <div class="stat">初始面积 A₀<b id="ro-a0">0.000</b></div>
+      </div>
+
+      <h2>哈密顿系统</h2>
+      <div class="buttons" id="sysBtns">
+        <button data-system="pendulum" class="active" type="button">单摆</button>
+        <button data-system="harmonic" type="button">谐振子</button>
+        <button data-system="quartic" type="button">非谐振子</button>
+      </div>
+      <div class="hint" id="sysHint" style="margin-top:8px"></div>
+
+      <h2>初始区域</h2>
+      <div class="row">
+        <div class="dis"><label for="size">方块尺寸</label><span class="val" id="vSize">1.00×</span></div>
+        <input type="range" id="size" min="0.1" max="1" step="0.01" value="1">
+      </div>
+      <div class="hint" style="margin-top:-4px">在相空间内拖动，可平移初始方块。</div>
+
+      <div class="desc" id="desc"></div>
+
+      <div class="eq">
+        <b>哈密顿方程</b><br>
+        <code>q̇ = ∂H/∂p = p</code> &nbsp; <code>ṗ = −∂H/∂q = −V′(q)</code><br>
+        <span id="eqH"><code>H = p²/2 + 1 − cos q</code></span><br>
+        <b>刘维尔定理（二维）</b><br>
+        <code>∇·(q̇, ṗ) = H_qp − H_pq = 0</code><br>
+        <code>⇒ dA/dt = 0</code>，面积就是相体积<br>
+      </div>
+
+      <p class="hint">二维相空间中面积即相体积。面积按整条材料边界计算，四个角点仅作轨迹参照。积分采用辛格式（速度 Verlet），离散映射同样严格保面积。灰色虚线方框的面积等于 A₀，可用来目测比较；读数中的极小偏差来自边界的多边形离散。空格键可暂停或继续。</p>
+    </aside>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+
+  const EPS_Q = 0.15;
+  const NB = 800;
+  const C_BLOB = '#2563eb';
+  const CORNER_COLORS = ['#ea580c', '#0d9488', '#7c3aed', '#db2777'];
+
+  const SYSTEMS = {
+    pendulum: {
+      qRange: Math.PI, pRange: Math.PI,
+      center: [1.9, 0.3], half: [0.44, 0.35],
+      levels: [0.4, 1.1, 1.7, 2.7, 3.5],
+      note: '单摆：相体积就是面积',
+      hamil: 'H = p²/2 + 1 − cos q',
+      hint: '默认方块靠近分界线：沿轨道被极度拉长、折叠，但面积保持不变。',
+      desc: '方块靠近分界线，被拉成细长弧带并折叠；四个彩色角点的高亮轨迹画出缠绕，而整块物质区域围成的面积始终等于 A₀。'
+    },
+    harmonic: {
+      qRange: 2.2, pRange: 2.2,
+      center: [1.15, 0.35], half: [0.34, 0.34],
+      levels: [0.2, 0.6, 1.1, 1.7, 2.3],
+      note: '谐振子：整体刚性旋转',
+      hamil: 'H = ½(p² + q²)',
+      hint: '线性系统：整块区域像刚体一样绕原点旋转，面积显然不变。',
+      desc: '谐振子的相流是绕原点的刚性旋转：方块只旋转、不形变，面积守恒在这里一目了然。作为对照，它说明线性情形只是最简单的一类。'
+    },
+    quartic: {
+      qRange: 2.4, pRange: 2.4,
+      center: [1.1, 0.25], half: [0.34, 0.42],
+      levels: [0.4, 1.1, 2.2, 3.6, 5.2],
+      note: '非谐振子：剪切与折返',
+      hamil: 'H = p²/2 + q²/2 + 0.15 q⁴',
+      hint: '非线性回复力让方块被剪切、拉伸，周期随振幅变化，但面积仍守恒。',
+      desc: '四次项让不同振幅的轨道周期不同，方块被剪切、拉长、折返；形状持续变化，面积却始终不变，这是刘维尔定理的非线性体现。'
+    }
+  };
+
+  const phase = document.getElementById('phase');
+  const pctx = phase.getContext('2d');
+  const mini = document.getElementById('mini');
+  const mctx = mini.getContext('2d');
+
+  const el = {
+    phaseNote: document.getElementById('phaseNote'),
+    miniRatio: document.getElementById('miniRatio'),
+    sysHint: document.getElementById('sysHint'),
+    desc: document.getElementById('desc'),
+    eqH: document.getElementById('eqH'),
+    size: document.getElementById('size'),
+    vSize: document.getElementById('vSize'),
+    speed: document.getElementById('speed'),
+    vSpeed: document.getElementById('vSpeed'),
+    toggle: document.getElementById('toggle'),
+    reset: document.getElementById('reset'),
+    roT: document.getElementById('ro-t'),
+    roErr: document.getElementById('ro-err'),
+    roA: document.getElementById('ro-a'),
+    roA0: document.getElementById('ro-a0')
+  };
+
+  const state = {
+    system: 'pendulum',
+    q0: 1.9, p0: 0.3,
+    hw: 0.44, hh: 0.35,
+    sizeScale: 1,
+    speed: 1,
+    playing: true,
+    t: 0,
+    boundary: [],
+    corners: [],
+    trails: [[], [], [], []],
+    area0: 1,
+    area: 1,
+    hist: [{ r: 1 }]
+  };
+
+  const view = {
+    trails: true,
+    contours: true,
+    field: true
+  };
+
+  const geom = { x0: 0, x1: 0, y0: 0, y1: 0, cx: 0, cy: 0, scale: 1 };
+  let W = 0, H = 0, DPR = 1;
+  let miniW = 0, miniH = 0;
+
+  function clamp(v, a, b) {
+    return v < a ? a : v > b ? b : v;
+  }
+
+  function hexToRgba(hex, a) {
+    const n = parseInt(hex.slice(1), 16);
+    const r = (n >> 16) & 255;
+    const g = (n >> 8) & 255;
+    const b = n & 255;
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+  }
+
+  function potential(q, sys) {
+    if (sys === 'pendulum') return 1 - Math.cos(q);
+    if (sys === 'harmonic') return 0.5 * q * q;
+    return 0.5 * q * q + EPS_Q * q * q * q * q;
+  }
+
+  function force(q, sys) {
+    if (sys === 'pendulum') return -Math.sin(q);
+    if (sys === 'harmonic') return -q;
+    return -q - 4 * EPS_Q * q * q * q;
+  }
+
+  function polygonArea(pts) {
+    const n = pts.length;
+    let s = 0;
+    for (let i = 0; i < n; i++) {
+      const a = pts[i];
+      const b = pts[(i + 1) % n];
+      s += a.q * b.p - b.q * a.p;
+    }
+    return 0.5 * Math.abs(s);
+  }
+
+  function fitCanvas(cv, ctx) {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const r = cv.getBoundingClientRect();
+    const w = Math.max(1, r.width);
+    const h = Math.max(1, r.height);
+    const pw = Math.max(1, Math.round(w * dpr));
+    const ph = Math.max(1, Math.round(h * dpr));
+    let resized = false;
+    if (cv.width !== pw || cv.height !== ph) {
+      cv.width = pw;
+      cv.height = ph;
+      resized = true;
+    }
+    // 用「设备像素 / CSS 像素」的真实比值做 transform，而不是四舍五入后的 dpr。
+    // 绘制坐标 = CSS 像素；canvas 的 backing 又被浏览器拉伸回 CSS 盒子，
+    // 于是 x 轴净比例 = (pw/w)·(w/pw) = 1，y 轴同样 = 1，两轴精确相等，
+    // 不会出现「同一条圆被单轴缩放成椭圆」的情况。
+    const sx = pw / w, sy = ph / h;
+    ctx.setTransform(sx, 0, 0, sy, 0, 0);
+    return { w: w, h: h, dpr: dpr, sx: sx, sy: sy, resized: resized };
+  }
+
+  function layout() {
+    const S = SYSTEMS[state.system];
+    const padL = 52, padR = 20, padT = 20, padB = 34;
+    const availW = Math.max(1, W - padL - padR);
+    const availH = Math.max(1, H - padT - padB);
+    const qr = 2 * S.qRange, pr = 2 * S.pRange;
+    const sc = Math.min(availW / qr, availH / pr);
+    const cx = padL + availW / 2;
+    const cy = padT + availH / 2;
+    geom.scale = sc;
+    geom.cx = cx;
+    geom.cy = cy;
+    geom.x0 = cx - S.qRange * sc;
+    geom.x1 = cx + S.qRange * sc;
+    geom.y0 = cy - S.pRange * sc;
+    geom.y1 = cy + S.pRange * sc;
+  }
+
+  function xOf(q) { return geom.cx + q * geom.scale; }
+  function yOf(p) { return geom.cy - p * geom.scale; }
+  function qOf(x) { return (x - geom.cx) / geom.scale; }
+  function pOf(y) { return (geom.cy - y) / geom.scale; }
+
+  function wrapOffsets(qmin, qmax) {
+    if (state.system !== 'pendulum') return [0];
+    const TAU = Math.PI * 2;
+    const k0 = Math.floor((-Math.PI - qmax) / TAU) - 1;
+    const k1 = Math.ceil((Math.PI - qmin) / TAU) + 1;
+    const out = [];
+    for (let k = k0; k <= k1; k++) out.push(k * TAU);
+    return out;
+  }
+
+  // ---------------------------------------------------------------------
+  // 映射自检：确认「灰色等值线」与「彩色轨迹」用的是同一张画布、同一个 ctx、
+  // 同一个 layout、同一个 DPR。控制台调用 __liouville.probe() 可随时查看。
+  // 判据：pxPerUnitX 必须 === pxPerUnitY，plotAspect 必须 === 1，
+  //       圆的 bbox 宽高比必须 === 1。
+  // ---------------------------------------------------------------------
+  function mapSig() {
+    return [W, H, DPR, geom.cx, geom.cy, geom.scale, geom.x0, geom.y0].join('|');
+  }
+
+  function bboxOf(pts) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, n = 0;
+    for (let i = 0; i < pts.length; i++) {
+      const x = pts[i].x, y = pts[i].y;
+      if (!isFinite(x) || !isFinite(y)) continue;
+      n++;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+    }
+    if (!n) return { n: 0 };
+    const w = x1 - x0, h = y1 - y0;
+    return { n: n, w: w, h: h, aspect: h > 0 ? w / h : Infinity, x0: x0, y0: y0, x1: x1, y1: y1 };
+  }
+
+  function energyAt(q, p, sys) {
+    return 0.5 * p * p + potential(q, sys);
+  }
+
+  // 与 strokeContour 完全相同的映射（xOf/yOf），只加密采样以便量 bbox
+  function contourCurve(E) {
+    const sys = state.system;
+    const qmax = sys === 'pendulum' ? Math.PI : SYSTEMS[sys].qRange;
+    const out = [];
+    for (let sgn = 1; sgn >= -1; sgn -= 2) {
+      for (let i = 0; i <= 4000; i++) {
+        const q = -qmax + 2 * qmax * i / 4000;
+        const rem = E - potential(q, sys);
+        if (rem < 0) continue;
+        out.push({ x: xOf(q), y: yOf(sgn * Math.sqrt(2 * rem)) });
+      }
+    }
+    return out;
+  }
+
+  function trailPts(i) {
+    const tr = state.trails[i] || [];
+    const out = [];
+    for (let k = 0; k < tr.length; k++) out.push({ x: xOf(tr[k].q), y: yOf(tr[k].p) });
+    return out;
+  }
+
+  // 祖先链上是否有单轴 CSS 缩放（transform / zoom）——这是"画布内容被拉伸"的典型来源
+  function stretchedAncestors() {
+    const out = [];
+    let node = phase;
+    while (node && node !== document.documentElement) {
+      const cs = window.getComputedStyle(node);
+      const tf = cs.transform;
+      const zm = cs.zoom;
+      if ((tf && tf !== 'none' && tf !== 'matrix(1, 0, 0, 1, 0, 0)') || (zm && zm !== '1' && zm !== 'normal')) {
+        out.push({ el: node.tagName.toLowerCase() + (node.id ? '#' + node.id : ''),
+                   transform: tf, zoom: zm, width: node.clientWidth, height: node.clientHeight });
+      }
+      node = node.parentElement;
+    }
+    return out;
+  }
+
+  function fmtBox(b) {
+    if (!b.n) return { n: 0 };
+    return { n: b.n, wPx: +b.w.toFixed(2), hPx: +b.h.toFixed(2), aspect: +b.aspect.toFixed(4) };
+  }
+
+  function probe() {
+    const rect = phase.getBoundingClientRect();
+    const S = SYSTEMS[state.system];
+    const pxX = xOf(1) - xOf(0);
+    const pxY = yOf(0) - yOf(1);
+    const outer = bboxOf(contourCurve(S.levels[S.levels.length - 1]));
+    const c0 = state.corners[0];
+    const cornerCircle = c0 ? bboxOf(contourCurve(energyAt(c0.q, c0.p, state.system))) : { n: 0 };
+    const blob = bboxOf(state.boundary.map(function (o) { return { x: xOf(o.q), y: yOf(o.p) }; }));
+    return {
+      system: state.system,
+      drawSpace: +W.toFixed(2) + '×' + +H.toFixed(2),
+      dprUsed: DPR,
+      devicePixelRatio: window.devicePixelRatio,
+      canvasBacking: phase.width + '×' + phase.height,
+      canvasCss: +rect.width.toFixed(2) + '×' + +rect.height.toFixed(2),
+      backingAspect: +(phase.width / phase.height).toFixed(5),
+      cssAspect: +(rect.width / rect.height).toFixed(5),
+      pxPerUnitX: +pxX.toFixed(4),
+      pxPerUnitY: +pxY.toFixed(4),
+      axisRatioXoverY: +(pxX / pxY).toFixed(6),
+      plotAspect: +((geom.x1 - geom.x0) / (geom.y1 - geom.y0)).toFixed(5),
+      outerContourBBox: fmtBox(outer),
+      cornerEnergyContourBBox: fmtBox(cornerCircle),
+      trail0BBox: fmtBox(bboxOf(trailPts(0))),
+      materialBBox: fmtBox(blob),
+      stretchedAncestors: stretchedAncestors()
+    };
+  }
+
+  function logProbe(tag) {
+    try {
+      const r = probe();
+      console.groupCollapsed('[liouville] ' + (tag || 'probe') + ' · ' + r.system);
+      Object.keys(r).forEach(function (k) { console.log('  ' + k + ':', r[k]); });
+      console.groupEnd();
+    } catch (e) { /* 控制台不可用时静默 */ }
+  }
+
+  window.__liouville = { probe: probe, state: state, geom: geom, view: view };
+
+
+  function qTicks() {
+    if (state.system === 'pendulum') {
+      return [-Math.PI, -Math.PI / 2, 0, Math.PI / 2, Math.PI];
+    }
+    return [-2, -1, 0, 1, 2];
+  }
+
+  function qLabels() {
+    if (state.system === 'pendulum') {
+      return ['−π', '−π/2', '0', 'π/2', 'π'];
+    }
+    return ['−2', '−1', '0', '1', '2'];
+  }
+
+  function pTicks() {
+    return [-2, -1, 0, 1, 2];
+  }
+
+  function strokeContour(ctx, E) {
+    const sys = state.system;
+    const qmax = sys === 'pendulum' ? Math.PI : SYSTEMS[sys].qRange;
+    let found = false;
+    for (let sgn = 1; sgn >= -1; sgn -= 2) {
+      ctx.beginPath();
+      let drawing = false;
+      for (let i = 0; i <= 600; i++) {
+        const q = -qmax + 2 * qmax * i / 600;
+        const rem = E - potential(q, sys);
+        if (rem < 0) { drawing = false; continue; }
+        // H = p²/2 + V(q) = E  ⇒  p = ±√(2(E − V))。此前漏掉因子 √2，
+        // 使等值线在 p 方向被压成 1/√2，屏幕上看到的椭圆宽高比恒为 √2≈1.414。
+        const p = sgn * Math.sqrt(2 * rem);
+        const x = xOf(q), y = yOf(p);
+        if (!drawing) { ctx.moveTo(x, y); drawing = true; found = true; }
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    return found;
+  }
+
+  function arrow(ctx, x1, y1, x2, y2) {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    const len = Math.hypot(x2 - x1, y2 - y1);
+    if (len < 1e-6) return;
+    const ux = (x2 - x1) / len, uy = (y2 - y1) / len;
+    const a = 0.42 * len;
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - ux * a - uy * a * 0.55, y2 - uy * a + ux * a * 0.55);
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - ux * a + uy * a * 0.55, y2 - uy * a - ux * a * 0.55);
+    ctx.stroke();
+  }
+
+  function drawScene(ctx) {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(geom.x0, geom.y0, geom.x1 - geom.x0, geom.y1 - geom.y0);
+    ctx.clip();
+
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(148,163,184,0.18)';
+    const xTicks = qTicks();
+    for (let i = 0; i < xTicks.length; i++) {
+      const x = xOf(xTicks[i]);
+      ctx.beginPath();
+      ctx.moveTo(x, geom.y0);
+      ctx.lineTo(x, geom.y1);
+      ctx.stroke();
+    }
+    const yTicks = pTicks();
+    for (let i = 0; i < yTicks.length; i++) {
+      const y = yOf(yTicks[i]);
+      ctx.beginPath();
+      ctx.moveTo(geom.x0, y);
+      ctx.lineTo(geom.x1, y);
+      ctx.stroke();
+    }
+
+    ctx.setLineDash([4, 5]);
+    ctx.strokeStyle = 'rgba(100,116,139,0.36)';
+    ctx.beginPath();
+    ctx.moveTo(xOf(0), geom.y0);
+    ctx.lineTo(xOf(0), geom.y1);
+    ctx.moveTo(geom.x0, yOf(0));
+    ctx.lineTo(geom.x1, yOf(0));
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    if (view.field) {
+      ctx.strokeStyle = 'rgba(100,116,139,0.24)';
+      ctx.lineWidth = 1;
+      const stepX = Math.max(54, (geom.x1 - geom.x0) / 12);
+      const stepY = Math.max(46, (geom.y1 - geom.y0) / 9);
+      const sys = state.system;
+      for (let x = geom.x0 + stepX * 0.6; x < geom.x1; x += stepX) {
+        for (let y = geom.y0 + stepY * 0.6; y < geom.y1; y += stepY) {
+          const q = qOf(x), p = pOf(y);
+          const vq = p, vp = force(q, sys);
+          const sp = Math.hypot(vq, vp);
+          if (sp < 1e-3) continue;
+          const len = 8;
+          const ux = vq * geom.scale / sp;
+          const uy = -vp * geom.scale / sp;
+          const m = Math.hypot(ux, uy) || 1;
+          arrow(ctx, x, y, x + ux / m * len, y + uy / m * len);
+        }
+      }
+    }
+
+    if (view.contours) {
+      const S = SYSTEMS[state.system];
+      ctx.strokeStyle = 'rgba(148,163,184,0.38)';
+      ctx.lineWidth = 1.1;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      for (let i = 0; i < S.levels.length; i++) {
+        strokeContour(ctx, S.levels[i]);
+      }
+
+      if (state.system === 'pendulum') {
+        ctx.strokeStyle = 'rgba(100,116,139,0.72)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([6, 5]);
+        ctx.lineJoin = 'round';
+        strokeContour(ctx, 2);
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(100,116,139,0.85)';
+        for (let s = -1; s <= 1; s += 2) {
+          ctx.beginPath();
+          ctx.arc(xOf(s * Math.PI), yOf(0), 3.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.font = '10.5px ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = 'rgba(100,116,139,0.85)';
+        ctx.fillText('分界线', xOf(Math.PI) - 8, yOf(0) - 13);
+      }
+    }
+
+    ctx.restore();
+  }
+
+  function drawFrame(ctx) {
+    const xTicks = qTicks();
+    const yTicks = pTicks();
+
+    ctx.strokeStyle = 'rgba(148,163,184,0.40)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(geom.x0, geom.y0, geom.x1 - geom.x0, geom.y1 - geom.y0);
+
+    ctx.font = '10.5px ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.fillStyle = '#a2adbd';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    const labels = qLabels();
+    for (let i = 0; i < xTicks.length; i++) {
+      ctx.fillText(labels[i], xOf(xTicks[i]), geom.y1 + 7);
+    }
+
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (let i = 0; i < yTicks.length; i++) {
+      ctx.fillText(String(yTicks[i]).replace('-', '−'), geom.x0 - 8, yOf(yTicks[i]));
+    }
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('p', geom.x0, geom.y0 - 6);
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'top';
+    ctx.fillText('q', geom.x1, geom.y1 + 20);
+  }
+
+  function buildBlob() {
+    const hw = state.hw, hh = state.hh;
+    const q0 = state.q0, p0 = state.p0;
+    const pts = [];
+    for (let e = 0; e < 4; e++) {
+      for (let i = 0; i < NB; i++) {
+        const f = i / NB;
+        let u, v;
+        if (e === 0) { u = f; v = 0; }
+        else if (e === 1) { u = 1; v = f; }
+        else if (e === 2) { u = 1 - f; v = 1; }
+        else { u = 0; v = 1 - f; }
+        pts.push({ q: q0 + (u - 0.5) * 2 * hw, p: p0 + (v - 0.5) * 2 * hh });
+      }
+    }
+    state.boundary = pts;
+    state.corners = [pts[0], pts[NB], pts[2 * NB], pts[3 * NB]];
+  }
+
+  function clampCenter() {
+    const S = SYSTEMS[state.system];
+    const qm = Math.max(0, S.qRange - state.hw - 0.05);
+    const pm = Math.max(0, S.pRange - state.hh - 0.05);
+    state.q0 = clamp(state.q0, -qm, qm);
+    state.p0 = clamp(state.p0, -pm, pm);
+  }
+
+  function reset() {
+    clampCenter();
+    state.t = 0;
+    state.trails = [[], [], [], []];
+    state.hist = [{ r: 1 }];
+    buildBlob();
+    state.area0 = polygonArea(state.boundary);
+    state.area = state.area0;
+    updateReadout();
+  }
+
+  function verletStep(arr, h) {
+    const sys = state.system;
+    for (let i = 0; i < arr.length; i++) {
+      const o = arr[i];
+      const ph = o.p + 0.5 * h * force(o.q, sys);
+      o.q += h * ph;
+      o.p = ph + 0.5 * h * force(o.q, sys);
+    }
+  }
+
+  function advance(sim) {
+    const n = Math.max(1, Math.ceil(sim / 0.004));
+    const h = sim / n;
+    for (let i = 0; i < n; i++) {
+      verletStep(state.boundary, h);
+    }
+    state.t += sim;
+    state.area = polygonArea(state.boundary);
+  }
+
+  function pushTrails() {
+    for (let i = 0; i < 4; i++) {
+      const tr = state.trails[i];
+      const c = state.corners[i];
+      tr.push({ q: c.q, p: c.p });
+      if (tr.length > 520) tr.splice(0, tr.length - 520);
+    }
+  }
+
+  function pushHistory() {
+    state.hist.push({ r: state.area / state.area0 });
+    if (state.hist.length > 620) {
+      state.hist.splice(0, state.hist.length - 620);
+    }
+  }
+
+  function drawGhost(ctx, qOffset) {
+    const off = qOffset || 0;
+    const x = xOf(state.q0 - state.hw + off);
+    const y = yOf(state.p0 + state.hh);
+    const w = 2 * state.hw * geom.scale;
+    const h = 2 * state.hh * geom.scale;
+    ctx.save();
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = 'rgba(148,163,184,0.5)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x, y, w, h);
+    ctx.restore();
+  }
+
+  function drawTrails(ctx) {
+    for (let i = 0; i < 4; i++) {
+      const tr = state.trails[i];
+      if (tr.length < 2) continue;
+      let qmin = Infinity, qmax = -Infinity;
+      for (let k = 0; k < tr.length; k++) {
+        if (tr[k].q < qmin) qmin = tr[k].q;
+        if (tr[k].q > qmax) qmax = tr[k].q;
+      }
+      const offsets = wrapOffsets(qmin, qmax);
+      for (let oi = 0; oi < offsets.length; oi++) {
+        const off = offsets[oi];
+        ctx.save();
+        ctx.setLineDash([6, 4]);
+        ctx.lineWidth = 1.4;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = hexToRgba(CORNER_COLORS[i], 0.78);
+        ctx.beginPath();
+        for (let k = 0; k < tr.length; k++) {
+          const x = xOf(tr[k].q + off), y = yOf(tr[k].p);
+          if (k === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+  }
+
+  function blobPath(ctx, qOffset) {
+    const pts = state.boundary;
+    const off = qOffset || 0;
+    ctx.beginPath();
+    for (let i = 0; i < pts.length; i++) {
+      const x = xOf(pts[i].q + off), y = yOf(pts[i].p);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+  }
+
+  function drawRef(ctx) {
+    if (!(state.area0 > 0)) return;
+    let side = Math.sqrt(state.area0) * geom.scale;
+    const maxSide = 0.32 * (geom.x1 - geom.x0);
+    if (side > maxSide) side = maxSide;
+    const x = geom.x1 - 16 - side;
+    const y = geom.y0 + 16;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, y, side, side);
+    ctx.fillStyle = 'rgba(148,163,184,0.06)';
+    ctx.fill();
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = 'rgba(148,163,184,0.75)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    ctx.setLineDash([]);
+    if (side > 30) {
+      ctx.fillStyle = 'rgba(100,116,139,0.85)';
+      ctx.font = '10.5px ui-monospace, SFMono-Regular, Menlo, monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('A₀', x + side / 2, y + side / 2);
+    }
+    ctx.restore();
+  }
+
+  let mapWarned = false;
+  let probeLogged = false;
+
+  function drawPhase() {
+    const fit = fitCanvas(phase, pctx);
+    W = fit.w;
+    H = fit.h;
+    DPR = fit.dpr;
+    layout();
+    // 冻结本帧的映射；场景层与动态层必须共享它，中途被改写就是根因
+    const sig = mapSig();
+
+    pctx.clearRect(0, 0, W, H);
+    if (W < 140 || H < 120) return;
+    drawScene(pctx);
+
+    pctx.save();
+    pctx.beginPath();
+    pctx.rect(geom.x0, geom.y0, geom.x1 - geom.x0, geom.y1 - geom.y0);
+    pctx.clip();
+
+    const ghostOffsets = wrapOffsets(state.q0 - state.hw, state.q0 + state.hw);
+    for (let gi = 0; gi < ghostOffsets.length; gi++) {
+      drawGhost(pctx, ghostOffsets[gi]);
+    }
+    if (view.trails) drawTrails(pctx);
+
+    let bqmin = Infinity, bqmax = -Infinity;
+    for (let bi = 0; bi < state.boundary.length; bi++) {
+      const q = state.boundary[bi].q;
+      if (q < bqmin) bqmin = q;
+      if (q > bqmax) bqmax = q;
+    }
+    const blobOffsets = wrapOffsets(bqmin, bqmax);
+    for (let oi = 0; oi < blobOffsets.length; oi++) {
+      blobPath(pctx, blobOffsets[oi]);
+      pctx.fillStyle = 'rgba(37,99,235,0.06)';
+      pctx.fill();
+    }
+    pctx.lineJoin = 'round';
+    pctx.lineCap = 'round';
+    pctx.strokeStyle = C_BLOB;
+    pctx.lineWidth = 2.1;
+    for (let oi = 0; oi < blobOffsets.length; oi++) {
+      blobPath(pctx, blobOffsets[oi]);
+      pctx.stroke();
+    }
+
+    const minPatchPx = Math.min(state.hw, state.hh) * 2 * geom.scale;
+    const cornerR = clamp(0.09 * minPatchPx, 1.1, 4.6);
+    const cornerLW = clamp(cornerR * 0.45, 0.7, 2.1);
+    for (let i = 0; i < 4; i++) {
+      const c = state.corners[i];
+      if (!c) continue;
+      const cOffsets = wrapOffsets(c.q, c.q);
+      for (let ci = 0; ci < cOffsets.length; ci++) {
+        const x = xOf(c.q + cOffsets[ci]), y = yOf(c.p);
+        pctx.beginPath();
+        pctx.arc(x, y, cornerR, 0, Math.PI * 2);
+        pctx.fillStyle = '#ffffff';
+        pctx.fill();
+        pctx.lineWidth = cornerLW;
+        pctx.strokeStyle = CORNER_COLORS[i];
+        pctx.stroke();
+      }
+    }
+
+    drawRef(pctx);
+
+    pctx.restore();
+    drawFrame(pctx);
+
+    if (mapSig() !== sig && !mapWarned) {
+      mapWarned = true;
+      console.warn('[liouville] geom 在 drawScene 与轨迹层之间被改写：', sig, '->', mapSig());
+    }
+
+    const ratio = state.area / state.area0;
+    pctx.save();
+    pctx.font = '11px ui-monospace, SFMono-Regular, Menlo, monospace';
+    pctx.textAlign = 'left';
+    pctx.textBaseline = 'top';
+    pctx.fillStyle = ratio === 1 ? '#2563eb' : '#1d4ed8';
+    pctx.fillText('A/A₀ = ' + ratio.toFixed(4), geom.x0 + 6, geom.y0 + 5);
+    pctx.fillStyle = '#94a3b8';
+    pctx.textBaseline = 'bottom';
+    pctx.fillText('τ = ' + state.t.toFixed(2), geom.x0 + 6, geom.y1 - 6);
+    pctx.restore();
+
+    if (!probeLogged) {
+      probeLogged = true;
+      logProbe('first-frame');
+    }
+  }
+
+  function drawMini() {
+    const fit = fitCanvas(mini, mctx);
+    miniW = fit.w;
+    miniH = fit.h;
+    mctx.clearRect(0, 0, miniW, miniH);
+    if (miniW < 80 || miniH < 60) return;
+
+    const padL = 40, padR = 12, padT = 12, padB = 16;
+    const x0 = padL, x1 = miniW - padR, y0 = padT, y1 = miniH - padB;
+    const hist = state.hist;
+    let dev = 0;
+    for (let i = 0; i < hist.length; i++) {
+      const d = Math.abs(hist[i].r - 1);
+      if (d > dev) dev = d;
+    }
+    const yh = Math.max(0.005, dev * 1.35);
+    const yMid = (y0 + y1) / 2;
+    const yOfR = function (r) {
+      return yMid - (r - 1) / yh * ((y1 - y0) / 2);
+    };
+
+    mctx.strokeStyle = 'rgba(148,163,184,0.30)';
+    mctx.lineWidth = 1;
+    mctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+
+    mctx.setLineDash([4, 4]);
+    mctx.strokeStyle = 'rgba(148,163,184,0.55)';
+    mctx.beginPath();
+    mctx.moveTo(x0, yOfR(1));
+    mctx.lineTo(x1, yOfR(1));
+    mctx.stroke();
+    mctx.setLineDash([]);
+
+    mctx.font = '9.5px ui-monospace, SFMono-Regular, Menlo, monospace';
+    mctx.fillStyle = '#94a3b8';
+    mctx.textAlign = 'right';
+    mctx.textBaseline = 'middle';
+    mctx.fillText('+' + (yh * 100).toFixed(2) + '%', x0 - 5, yOfR(1 + yh));
+    mctx.fillText('1', x0 - 5, yOfR(1));
+    mctx.fillText('−' + (yh * 100).toFixed(2) + '%', x0 - 5, yOfR(1 - yh));
+
+    if (hist.length >= 2) {
+      mctx.beginPath();
+      for (let i = 0; i < hist.length; i++) {
+        const x = x0 + (hist.length === 1 ? 0 : i / (hist.length - 1)) * (x1 - x0);
+        const y = yOfR(hist[i].r);
+        if (i === 0) mctx.moveTo(x, y);
+        else mctx.lineTo(x, y);
+      }
+      mctx.strokeStyle = '#2563eb';
+      mctx.lineWidth = 1.8;
+      mctx.lineJoin = 'round';
+      mctx.stroke();
+    }
+
+    mctx.fillStyle = '#94a3b8';
+    mctx.textAlign = 'left';
+    mctx.textBaseline = 'top';
+    mctx.fillText('0', x0, y1 + 5);
+    mctx.textAlign = 'right';
+    mctx.fillText('τ', x1, y1 + 5);
+  }
+
+  function updateReadout() {
+    const ratio = state.area / state.area0;
+    el.roT.textContent = state.t.toFixed(2);
+    el.roErr.textContent = ((ratio - 1) * 100).toFixed(4) + '%';
+    el.roA.textContent = state.area.toFixed(4);
+    el.roA0.textContent = state.area0.toFixed(4);
+    el.miniRatio.textContent = ratio.toFixed(4);
+  }
+
+  function setSystem(name) {
+    const S = SYSTEMS[name];
+    if (!S) return;
+    state.system = name;
+    state.sizeScale = 1;
+    state.hw = S.half[0];
+    state.hh = S.half[1];
+    state.q0 = S.center[0];
+    state.p0 = S.center[1];
+    el.size.value = '1';
+    el.vSize.textContent = '1.00×';
+    document.querySelectorAll('[data-system]').forEach(function (btn) {
+      btn.classList.toggle('active', btn.dataset.system === name);
+    });
+    el.phaseNote.textContent = S.note;
+    el.sysHint.textContent = S.hint;
+    el.desc.textContent = S.desc;
+    el.eqH.innerHTML = '<code>' + S.hamil + '</code>';
+    reset();
+    if (W > 0) logProbe('switch:' + name);
+  }
+
+  function syncViewButtons() {
+    document.querySelectorAll('[data-view]').forEach(function (btn) {
+      const key = btn.dataset.view;
+      btn.classList.toggle('active', !!view[key]);
+      btn.setAttribute('aria-pressed', String(!!view[key]));
+    });
+  }
+
+  function applySize() {
+    const S = SYSTEMS[state.system];
+    state.hw = S.half[0] * state.sizeScale;
+    state.hh = S.half[1] * state.sizeScale;
+    reset();
+  }
+
+  let last = performance.now();
+
+  function loop(now) {
+    let dt = (now - last) / 1000;
+    last = now;
+    if (!(dt > 0)) dt = 0;
+    if (dt > 0.05) dt = 0.05;
+
+    if (state.playing && dt > 0) {
+      advance(dt * state.speed);
+      pushTrails();
+      pushHistory();
+    }
+
+    drawPhase();
+    drawMini();
+    updateReadout();
+    requestAnimationFrame(loop);
+  }
+
+  document.querySelectorAll('[data-system]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      setSystem(btn.dataset.system);
+      last = performance.now();
+    });
+  });
+
+  document.querySelectorAll('[data-view]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const key = btn.dataset.view;
+      view[key] = !view[key];
+      syncViewButtons();
+    });
+  });
+
+  el.size.addEventListener('input', function () {
+    state.sizeScale = parseFloat(this.value);
+    el.vSize.textContent = state.sizeScale.toFixed(2) + '×';
+    applySize();
+  });
+
+  el.speed.addEventListener('input', function () {
+    state.speed = parseFloat(this.value);
+    el.vSpeed.textContent = state.speed.toFixed(1) + '×';
+  });
+
+  el.toggle.addEventListener('click', function () {
+    state.playing = !state.playing;
+    el.toggle.textContent = state.playing ? '暂停' : '继续';
+    el.toggle.classList.toggle('primary', state.playing);
+    last = performance.now();
+  });
+
+  el.reset.addEventListener('click', function () {
+    reset();
+    last = performance.now();
+  });
+
+  window.addEventListener('keydown', function (e) {
+    if (e.code === 'Space' && e.target === document.body) {
+      e.preventDefault();
+      el.toggle.click();
+    }
+  });
+
+  let dragging = false;
+
+  function setCenterFromEvent(e) {
+    const r = phase.getBoundingClientRect();
+    state.q0 = qOf(e.clientX - r.left);
+    state.p0 = pOf(e.clientY - r.top);
+    reset();
+  }
+
+  phase.addEventListener('pointerdown', function (e) {
+    if (W < 140 || H < 120) return;
+    dragging = true;
+    setCenterFromEvent(e);
+    if (phase.setPointerCapture) phase.setPointerCapture(e.pointerId);
+  });
+
+  phase.addEventListener('pointermove', function (e) {
+    if (!dragging) return;
+    setCenterFromEvent(e);
+  });
+
+  phase.addEventListener('pointerup', function () {
+    dragging = false;
+  });
+
+  phase.addEventListener('pointercancel', function () {
+    dragging = false;
+  });
+
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(function () {
+      drawPhase();
+      drawMini();
+    });
+    ro.observe(phase);
+    ro.observe(mini);
+  } else {
+    window.addEventListener('resize', function () {
+      drawPhase();
+      drawMini();
+    });
+  }
+
+  syncViewButtons();
+  setSystem('pendulum');
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
